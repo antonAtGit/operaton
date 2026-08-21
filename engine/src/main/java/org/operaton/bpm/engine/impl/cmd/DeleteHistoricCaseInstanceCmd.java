@@ -19,6 +19,7 @@ package org.operaton.bpm.engine.impl.cmd;
 import java.util.Arrays;
 import java.util.Collections;
 
+import org.jspecify.annotations.NullMarked;
 import org.operaton.bpm.engine.history.HistoricCaseInstance;
 
 import org.jspecify.annotations.Nullable;
@@ -33,7 +34,7 @@ import static org.operaton.bpm.engine.impl.util.EnsureUtil.ensureNotNull;
 /**
  * @author Sebastian Menski
  */
-public class DeleteHistoricCaseInstanceCmd implements Command<Object> {
+public @NullMarked class DeleteHistoricCaseInstanceCmd implements Command<Object> {
   protected String caseInstanceId;
 
   public DeleteHistoricCaseInstanceCmd(String caseInstanceId) {

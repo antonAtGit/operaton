@@ -17,6 +17,7 @@
 
 package org.operaton.bpm.engine.impl.cmd;
 
+import org.jspecify.annotations.NonNull;
 import org.operaton.bpm.engine.exception.NullValueException;
 import org.operaton.bpm.engine.history.UserOperationLogEntry;
 import org.operaton.bpm.engine.impl.persistence.entity.TaskEntity;
@@ -43,7 +44,7 @@ public class SetTaskDescriptionCmd extends AbstractSetTaskPropertyCmd<String> {
   }
 
   @Override
-  protected void executeSetOperation(TaskEntity task, String value) {
+  protected void executeSetOperation(@NonNull TaskEntity task, String value) {
     task.setDescription(value);
   }
 }

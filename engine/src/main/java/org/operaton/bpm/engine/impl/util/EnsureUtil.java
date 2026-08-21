@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import org.operaton.bpm.engine.ProcessEngineConfiguration;
@@ -37,6 +38,8 @@ import org.operaton.bpm.engine.impl.interceptor.CommandContext;
  * @author Roman Smirnov
  */
 public final class EnsureUtil {
+
+  private static final String LAMBDA_STACK_SIGNATURE = "lambda$";
 
   private EnsureUtil() {
   }
@@ -464,9 +467,38 @@ public final class EnsureUtil {
     }
   }
 
-  public static void ensureActiveCommandContext(String operation) {
-    if(Context.getCommandContext() == null) {
+  public static @NonNull CommandContext ensureActiveCommandContext(String operation) {
+    CommandContext commandContext = Context.getCommandContext();
+    if (commandContext == null) {
       throw LOG.notInsideCommandContext(operation);
     }
+    return commandContext;
   }
+
+  public static @NonNull CommandContext ensureActiveCommandContext(@Nullable CommandContext commandContext) {
+    if (commandContext == null) {
+      throw LOG.notInsideCommandContext(getCallerOperation());
+    }
+    return commandContext;
+  }
+
+  private static String getCallerOperation() {
+    StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+    if (stackTrace.length > 3) {
+      StackTraceElement caller = stackTrace[3];
+      String className = caller.getClassName();
+      String simpleClassName = className.substring(className.lastIndexOf('.') + 1);
+      return simpleClassName + "#" + unwrapLambdaMethodName(caller.getMethodName());
+    }
+    return "unknown operation";
+  }
+
+  private static String unwrapLambdaMethodName(String methodName) {
+    if (methodName.startsWith(LAMBDA_STACK_SIGNATURE)) {
+      int end = methodName.indexOf('$', LAMBDA_STACK_SIGNATURE.length());
+      return end > 0 ? methodName.substring(LAMBDA_STACK_SIGNATURE.length(), end) : methodName;
+    }
+    return methodName;
+  }
+
 }

@@ -16,7 +16,7 @@
  */
 package org.operaton.bpm.engine.impl.cmd;
 
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import org.operaton.bpm.engine.ProcessEngineException;
@@ -37,9 +37,9 @@ import org.operaton.bpm.engine.impl.task.TaskDefinition;
  *
  * @author Falko Menge (Camunda)
  */
-public class GetFormKeyCmd implements Command<String> {
+public @NullMarked class GetFormKeyCmd implements Command<String> {
 
-  protected String taskDefinitionKey;
+  protected @Nullable String taskDefinitionKey;
   protected String processDefinitionId;
 
   /**
@@ -52,7 +52,7 @@ public class GetFormKeyCmd implements Command<String> {
   /**
    * Retrieves a task form key.
    */
-  public GetFormKeyCmd(String processDefinitionId, @NonNull String taskDefinitionKey) {
+  public GetFormKeyCmd(String processDefinitionId, String taskDefinitionKey) {
     setProcessDefinitionId(processDefinitionId);
     if (taskDefinitionKey.isEmpty()) {
       throw new ProcessEngineException("The task definition key is mandatory, but '%s' has been provided.".formatted(taskDefinitionKey));
@@ -60,7 +60,7 @@ public class GetFormKeyCmd implements Command<String> {
     this.taskDefinitionKey = taskDefinitionKey;
   }
 
-  protected void setProcessDefinitionId(String processDefinitionId) {
+  protected void setProcessDefinitionId(@Nullable String processDefinitionId) {
     if (processDefinitionId == null || processDefinitionId.isEmpty()) {
       throw new ProcessEngineException("The process definition id is mandatory, but '%s' has been provided.".formatted(processDefinitionId));
     }
@@ -69,7 +69,7 @@ public class GetFormKeyCmd implements Command<String> {
 
   @Override
   public @Nullable String execute(CommandContext commandContext) {
-    ProcessEngineConfigurationImpl processEngineConfiguration = Context.getProcessEngineConfiguration();
+    ProcessEngineConfigurationImpl processEngineConfiguration = Context.getRequiredProcessEngineConfiguration();
     DeploymentCache deploymentCache = processEngineConfiguration.getDeploymentCache();
     ProcessDefinitionEntity processDefinition = deploymentCache.findDeployedProcessDefinitionById(processDefinitionId);
 

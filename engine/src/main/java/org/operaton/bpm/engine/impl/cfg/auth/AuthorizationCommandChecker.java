@@ -16,6 +16,8 @@
  */
 package org.operaton.bpm.engine.impl.cfg.auth;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import org.operaton.bpm.engine.authorization.Permission;
@@ -38,6 +40,7 @@ import org.operaton.bpm.engine.impl.db.PermissionCheckBuilder;
 import org.operaton.bpm.engine.impl.dmn.entity.repository.DecisionDefinitionEntity;
 import org.operaton.bpm.engine.impl.dmn.entity.repository.DecisionRequirementsDefinitionEntity;
 import org.operaton.bpm.engine.impl.history.event.HistoricExternalTaskLogEntity;
+import org.operaton.bpm.engine.impl.interceptor.CommandContext;
 import org.operaton.bpm.engine.impl.persistence.entity.AuthorizationManager;
 import org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity;
 import org.operaton.bpm.engine.impl.persistence.entity.HistoricJobLogEventEntity;
@@ -52,6 +55,7 @@ import org.operaton.bpm.engine.repository.DecisionDefinition;
 import org.operaton.bpm.engine.repository.ProcessDefinition;
 import org.operaton.bpm.engine.runtime.CaseExecution;
 
+import static java.util.Objects.requireNonNull;
 import static org.operaton.bpm.engine.authorization.Authorization.ANY;
 import static org.operaton.bpm.engine.authorization.Permissions.*;
 import static org.operaton.bpm.engine.authorization.Resources.BATCH;
@@ -66,6 +70,7 @@ import static org.operaton.bpm.engine.authorization.Resources.TASK;
  * {@link CommandChecker} that uses the {@link AuthorizationManager} to perform
  * authorization checks.
  */
+@NullMarked
 public class AuthorizationCommandChecker implements CommandChecker {
 
   @Override
@@ -667,12 +672,13 @@ public class AuthorizationCommandChecker implements CommandChecker {
     if (executionId != null) {
 
       // Permissions to task actions is based on the order in which PermissioncheckBuilder is built
+      ProcessDefinitionEntity processDefinition = requireNonNull(task.getProcessDefinition());
       CompositePermissionCheck taskWorkPermission = new PermissionCheckBuilder()
         .disjunctive()
           .atomicCheckForResourceId(TASK, taskId, TASK_ASSIGN)
-          .atomicCheckForResourceId(PROCESS_DEFINITION, task.getProcessDefinition().getKey(), TASK_ASSIGN)
+          .atomicCheckForResourceId(PROCESS_DEFINITION, processDefinition.getKey(), TASK_ASSIGN)
           .atomicCheckForResourceId(TASK, taskId, UPDATE)
-          .atomicCheckForResourceId(PROCESS_DEFINITION, task.getProcessDefinition().getKey(), UPDATE_TASK)
+          .atomicCheckForResourceId(PROCESS_DEFINITION, processDefinition.getKey(), UPDATE_TASK)
         .build();
 
       getAuthorizationManager().checkAuthorization(taskWorkPermission);
@@ -725,12 +731,13 @@ public class AuthorizationCommandChecker implements CommandChecker {
     if (executionId != null) {
 
       // Permissions to task actions is based on the order in which PermissioncheckBuilder is built
+      ProcessDefinitionEntity processDefinition = requireNonNull(task.getProcessDefinition());
       CompositePermissionCheck taskWorkPermission = new PermissionCheckBuilder()
           .disjunctive()
           .atomicCheckForResourceId(TASK, taskId, TASK_WORK)
-          .atomicCheckForResourceId(PROCESS_DEFINITION, task.getProcessDefinition().getKey(), TASK_WORK)
+          .atomicCheckForResourceId(PROCESS_DEFINITION, processDefinition.getKey(), TASK_WORK)
           .atomicCheckForResourceId(TASK, taskId, UPDATE)
-          .atomicCheckForResourceId(PROCESS_DEFINITION, task.getProcessDefinition().getKey(), UPDATE_TASK)
+          .atomicCheckForResourceId(PROCESS_DEFINITION, processDefinition.getKey(), UPDATE_TASK)
         .build();
 
       getAuthorizationManager().checkAuthorization(taskWorkPermission);
@@ -950,19 +957,23 @@ public class AuthorizationCommandChecker implements CommandChecker {
   // helper ////////////////////////////////////////
 
   protected AuthorizationManager getAuthorizationManager() {
-    return Context.getCommandContext().getAuthorizationManager();
+    CommandContext commandContext = requireNonNull(Context.getCommandContext());
+    return commandContext.getAuthorizationManager();
   }
 
-  protected ProcessDefinitionEntity findLatestProcessDefinitionById(String processDefinitionId) {
-    return Context.getCommandContext().getProcessDefinitionManager().findLatestProcessDefinitionById(processDefinitionId);
+  protected @Nullable ProcessDefinitionEntity findLatestProcessDefinitionById(String processDefinitionId) {
+    CommandContext commandContext = requireNonNull(Context.getCommandContext());
+    return commandContext.getProcessDefinitionManager().findLatestProcessDefinitionById(processDefinitionId);
   }
 
-  protected DecisionDefinitionEntity findLatestDecisionDefinitionById(String decisionDefinitionId) {
-    return Context.getCommandContext().getDecisionDefinitionManager().findDecisionDefinitionById(decisionDefinitionId);
+  protected @Nullable DecisionDefinitionEntity findLatestDecisionDefinitionById(String decisionDefinitionId) {
+    CommandContext commandContext = requireNonNull(Context.getCommandContext());
+    return commandContext.getDecisionDefinitionManager().findDecisionDefinitionById(decisionDefinitionId);
   }
 
-  protected ExecutionEntity findExecutionById(String processInstanceId) {
-    return Context.getCommandContext().getExecutionManager().findExecutionById(processInstanceId);
+  protected @Nullable ExecutionEntity findExecutionById(String processInstanceId) {
+    CommandContext commandContext = requireNonNull(Context.getCommandContext());
+    return commandContext.getExecutionManager().findExecutionById(processInstanceId);
   }
 
 }

@@ -16,6 +16,7 @@
  */
 package org.operaton.bpm.engine.impl.cmd;
 
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import org.operaton.bpm.engine.history.UserOperationLogEntry;
@@ -30,7 +31,7 @@ import static org.operaton.bpm.engine.impl.util.EnsureUtil.ensureNotNull;
 /**
  * @author Tom Baeyens
  */
-public class DelegateTaskCmd implements Command<Object> {
+public @NullMarked class DelegateTaskCmd implements Command<Object> {
   protected String taskId;
   protected String userId;
 

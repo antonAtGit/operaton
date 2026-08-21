@@ -16,6 +16,7 @@
  */
 package org.operaton.bpm.engine.impl.cmd;
 
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import org.operaton.bpm.engine.ProcessEngineException;
@@ -33,18 +34,18 @@ import static org.operaton.bpm.engine.impl.util.EnsureUtil.ensureNotNull;
  * @author Falko Menge
  * @author Joram Barrez
  */
-public abstract class DeleteIdentityLinkCmd implements Command<Void> {
-  protected String userId;
+public abstract @NullMarked class DeleteIdentityLinkCmd implements Command<Void> {
+  protected @Nullable String userId;
 
-  protected String groupId;
+  protected @Nullable String groupId;
 
   protected String type;
 
   protected String taskId;
 
-  protected TaskEntity task;
+  protected @Nullable TaskEntity task;
 
-  protected DeleteIdentityLinkCmd(String taskId, String userId, String groupId, String type) {
+  protected DeleteIdentityLinkCmd(String taskId, @Nullable String userId, @Nullable String groupId, String type) {
     validateParams(userId, groupId, type, taskId);
     this.taskId = taskId;
     this.userId = userId;
@@ -52,7 +53,7 @@ public abstract class DeleteIdentityLinkCmd implements Command<Void> {
     this.type = type;
   }
 
-  protected void validateParams(String userId, String groupId, String type, String taskId) {
+  protected void validateParams(@Nullable String userId, @Nullable String groupId, String type, String taskId) {
     ensureNotNull("taskId", taskId);
     ensureNotNull("type is required when adding a new task identity link", "type", type);
 

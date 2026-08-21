@@ -18,6 +18,7 @@ package org.operaton.bpm.engine.impl.cmd;
 
 import java.util.Arrays;
 
+import org.jspecify.annotations.NullMarked;
 import org.operaton.bpm.engine.BadUserRequestException;
 
 import org.jspecify.annotations.Nullable;
@@ -37,7 +38,7 @@ import static org.operaton.bpm.engine.impl.util.EnsureUtil.ensureNotNull;
  * @author Tobias Metzke
  *
  */
-public class DeleteHistoricVariableInstancesByProcessInstanceIdCmd implements Command<Void> {
+public @NullMarked class DeleteHistoricVariableInstancesByProcessInstanceIdCmd implements Command<Void> {
   private final String processInstanceId;
 
   public DeleteHistoricVariableInstancesByProcessInstanceIdCmd(String processInstanceId) {

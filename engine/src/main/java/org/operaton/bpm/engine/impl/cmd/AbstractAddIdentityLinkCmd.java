@@ -17,6 +17,8 @@
 
 package org.operaton.bpm.engine.impl.cmd;
 
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import org.operaton.bpm.engine.BadUserRequestException;
 import org.operaton.bpm.engine.exception.NullValueException;
 import org.operaton.bpm.engine.impl.interceptor.CommandContext;
@@ -27,7 +29,7 @@ import org.operaton.bpm.engine.task.IdentityLinkType;
  * Abstract class that modifies {@link AbstractSetTaskPropertyCmd} to customize validation & logging for
  * Add Identity Link related Commands.
  */
-public abstract class AbstractAddIdentityLinkCmd extends AbstractSetTaskPropertyCmd<Integer> {
+public abstract @NullMarked class AbstractAddIdentityLinkCmd extends AbstractSetTaskPropertyCmd<Integer> {
 
   protected final String userId;
   protected final String groupId;
@@ -43,7 +45,7 @@ public abstract class AbstractAddIdentityLinkCmd extends AbstractSetTaskProperty
   }
 
   @Override
-  protected void executeSetOperation(TaskEntity task, Integer value) {
+  protected void executeSetOperation(TaskEntity task, @Nullable Integer value) {
 
     if (isAssignee(type)) {
       task.setAssignee(userId);
@@ -68,11 +70,11 @@ public abstract class AbstractAddIdentityLinkCmd extends AbstractSetTaskProperty
   protected abstract void logOperation(CommandContext context, TaskEntity task);
 
   @Override
-  protected String getUserOperationLogName() {
+  protected @Nullable String getUserOperationLogName() {
     return null; // Ignored for identity commands
   }
 
-  protected void validateParameters(String type, String userId, String groupId) {
+  protected void validateParameters(String type, @Nullable String userId, @Nullable String groupId) {
 
     if (isAssignee(type) && groupId != null) {
       throw new BadUserRequestException("Incompatible usage: cannot use ASSIGNEE together with a groupId");
@@ -83,7 +85,7 @@ public abstract class AbstractAddIdentityLinkCmd extends AbstractSetTaskProperty
     }
   }
 
-  protected boolean hasNullIdentity(String userId, String groupId) {
+  protected boolean hasNullIdentity(@Nullable String userId, @Nullable String groupId) {
     return (userId == null) && (groupId == null);
   }
 
