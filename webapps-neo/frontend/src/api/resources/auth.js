@@ -81,7 +81,13 @@ const session_user = (state) => {
 const verify_credentials = (state, username, password) =>
   fetch(`${_url_engine_rest(state)}/identity/verify`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      // The engine's REST auth filter rejects the request before it ever
+      // reaches /identity/verify, so the credentials under test have to travel
+      // as Basic auth as well, not only in the body.
+      Authorization: `Basic ${btoa(`${username}:${password}`)}`,
+    },
     credentials: "include",
     body: JSON.stringify({ username, password }),
   })
