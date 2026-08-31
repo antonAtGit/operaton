@@ -65,7 +65,8 @@ header):
 `properties` is point-specific:
 
 - **PAGE** — `path` and `href` (the route), `nameKey` (i18n key for the nav
-  label), optional `hotkey` (e.g. `"alt+shift+8"`).
+  label), optional `hotkey` (e.g. `"alt+shift+8"`), optional `area` (see
+  [Area membership](#area-membership--the-areas-plugin)).
 - Any point may set `apiBase` to route the plugin's `get`/`post` calls to its
   own backend instead of the engine REST API (see
   [`use_plugin_api`](#the-use_plugin_api-hook)).
@@ -153,6 +154,48 @@ import {
   POST,
 } from "../../index.js";
 ```
+
+### Area membership — the Areas plugin
+
+[`src/plugins/bundled/areas/plugin.jsx`](../src/plugins/bundled/areas/plugin.jsx)
+groups the app into the three role-oriented areas **Arbeitsbereich**,
+**Cockpit** and **Administration**, each on its own top-level route (`/arbeit`,
+`/cockpit`, `/verwaltung`). It is deliberately **additive**: the flat primary
+nav is untouched and every screen stays reachable exactly as before — the areas
+are a second, role-oriented way in. It also shows the other two descriptor
+shapes, since it ships an `app.api` descriptor (the shared namespace, state
+branch and translations) alongside its PAGE and `dashboard.widget` ones.
+
+Gating uses the engine's own **Application** authorization (`resourceType 0`,
+permission `ACCESS`) via
+`GET /authorization/check?permissionName=ACCESS&resourceName=application&resourceType=0&resourceId={tasklist|cockpit|admin}`.
+The app ids are reused on purpose, so an installation migrated from Camunda
+keeps the app authorizations it already has, and admins grant an area through
+the existing UI under `/admin/authorizations`. Two consequences worth knowing:
+with engine authorization **disabled** the check answers `true` for everyone, so
+no area is hidden; and the gate **fails open** — it is navigational, not a
+security boundary, and the real enforcement stays the engine's per-resource
+authorization on each page.
+
+To see the gating actually bite, you need an engine with authorization enabled
+and users who are not `operaton-admin`. `dev-fixtures/bot/seed-auth.js` seeds
+exactly that — three role groups and four users with different area access; see
+[dev-fixtures/README.md](../dev-fixtures/README.md#authorization-scenarios).
+
+Any other PAGE plugin can join an area by declaring `properties.area`:
+
+```jsx
+properties: {
+  path: "/plugin/metrics",
+  href: "/plugin/metrics",
+  nameKey: "plugins.metrics.nav",
+  area: "cockpit",   // listed under Cockpit
+}
+```
+
+The areas plugin picks such pages up from the registry, so a plugin lands in the
+right section without either plugin knowing about the other. Hosts ignore the
+property, so it is safe on any descriptor.
 
 ### Remote (no-build) plugins
 

@@ -133,6 +133,9 @@ export default [
       href: "/plugin/metrics",
       nameKey: "plugins.metrics.nav",
       hotkey: "alt+shift+8",
+      // Opt into the Cockpit area (see the `areas` plugin). Purely additive:
+      // an unknown property is ignored by every host seam.
+      area: "cockpit",
     },
     Component: MetricsPage,
     api,

@@ -1,0 +1,59 @@
+/*
+ * Areas plugin styles.
+ *
+ * Same convention as the Metrics plugin: everything sits in the top-priority
+ * `custom` cascade layer, scoped under the plugin's own classes, so it wins
+ * predictably without specificity wars and never leaks into host pages.
+ */
+@layer custom {
+  #content.area-page .area-subtitle {
+    margin-block-start: var(--spacing-1, 0.25rem);
+    color: var(--text-2, #666);
+  }
+
+  #content.area-page .area-links,
+  .areas-widget .area-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-3, 1rem);
+    margin-block-start: var(--spacing-3, 1rem);
+    padding: 0;
+    list-style: none;
+  }
+
+  #content.area-page .area-links a,
+  .areas-widget .area-cards a {
+    display: block;
+    padding: var(--spacing-3, 1rem);
+    border: var(--border, 1px solid);
+    border-color: var(--border-color, #ccc);
+    border-radius: var(--border-radius-2, 0.5rem);
+    background: var(--background-2, transparent);
+    text-decoration: none;
+  }
+
+  #content.area-page .area-links a {
+    min-inline-size: 10rem;
+  }
+
+  .areas-widget .area-cards li {
+    flex: 1 1 14rem;
+  }
+
+  .areas-widget .area-cards h3 {
+    margin: 0;
+  }
+
+  .areas-widget .area-cards p {
+    margin-block-start: var(--spacing-1, 0.25rem);
+    color: var(--text-2, #666);
+  }
+
+  #content.area-page .area-no-access {
+    margin-block-start: var(--spacing-3, 1rem);
+    padding: var(--spacing-3, 1rem);
+    border: var(--border, 1px solid);
+    border-color: var(--border-color, #ccc);
+    border-radius: var(--border-radius-2, 0.5rem);
+  }
+}
