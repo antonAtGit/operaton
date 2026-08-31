@@ -33,7 +33,7 @@ dev-fixtures/
 ### A. All-in-one Docker (engine + bot + control panel)
 
 ```sh
-# in the repo root
+# in webapps-neo/frontend
 docker compose -f docker-compose.dev-fixtures.yaml up --build
 ```
 
@@ -46,6 +46,7 @@ Then:
 ### B. Engine in Docker, bot on the host (faster iteration on the bot)
 
 ```sh
+# in webapps-neo/frontend
 docker compose up -d                   # the existing engine-only compose
 cd dev-fixtures/bot
 npm run deploy
@@ -115,7 +116,8 @@ role-dependent. `seed-auth.js` seeds three role groups, four users and the
 permissions that separate them.
 
 ```sh
-docker compose -f docker-compose.authorization.yaml up -d   # in the repo root
+cd webapps-neo/frontend
+docker compose -f docker-compose.authorization.yaml up -d
 cd dev-fixtures/bot
 npm run deploy
 npm run seed-auth

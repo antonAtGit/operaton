@@ -20,6 +20,8 @@ You require the following software to run the app
 
 ## Running the app
 
+- `npm install` - Installs the dependencies (once, and after pulling changes to
+  `package-lock.json`). Every command below needs this first.
 - `npm run dev` - Starts a dev server at http://127.0.0.1:5173
   - **IMPORTANT:** instead of localhost use http://127.0.0.1:5173 to avoid CORS issues!
   - Login with `demo`/`demo` as user/password
