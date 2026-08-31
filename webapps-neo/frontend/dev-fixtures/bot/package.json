@@ -9,7 +9,8 @@
     "bot": "node bot.js",
     "spawn": "node spawn.js",
     "stress": "node stress.js",
-    "server": "node server.js"
+    "server": "node server.js",
+    "seed-auth": "node seed-auth.js"
   },
   "engines": {
     "node": ">=20"

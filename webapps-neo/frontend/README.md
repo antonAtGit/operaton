@@ -11,7 +11,7 @@ The accompanying web apps for the [Operaton](https://github.com/operaton/operato
 You require the following software to run the app
 
 - [Preact & Vite Setup](https://preactjs.com/guide/v10/getting-started#create-a-vite-powered-preact-app)
-  - An up-to-date version of `node.js` 
+  - An up-to-date version of `node.js`
 - An Operaton API for the backend to consume
   - With Docker Compose run `docker compose up -d`, or
   - With Podman Compose (needs to be [installed on top of Podman](https://github.com/containers/podman-compose)) run `podman compose up -d`
@@ -21,7 +21,7 @@ You require the following software to run the app
 ## Running the app
 
 - `npm run dev` - Starts a dev server at http://127.0.0.1:5173
-  - **IMPORTANT:** instead of localhost use http://127.0.0.1:5173 to avoid CORS issues! 
+  - **IMPORTANT:** instead of localhost use http://127.0.0.1:5173 to avoid CORS issues!
   - Login with `demo`/`demo` as user/password
 - `npm run build` - Builds for production, emitting to `dist/`
 - `npm run preview` - Starts a server at http://localhost:4173/ (maybe 127.0.0.1 as well to avoid CORS, not tested yet) to test production build locally
@@ -34,6 +34,13 @@ instances — see [`dev-fixtures/README.md`](./dev-fixtures/README.md). The
 quickest path is `docker compose -f docker-compose.dev-fixtures.yaml up --build`,
 which brings up the engine, the bot, and a control panel at
 <http://localhost:3001> with buttons for deploy / spawn / stress.
+
+To test anything role-dependent, `demo` is the wrong user — it is in
+`operaton-admin` and sees everything. `npm run seed-auth` in `dev-fixtures/bot`
+seeds four users with different area access (`anna`, `ben`, `carla`, `dora`;
+password = user id) against an engine started with
+`docker compose -f docker-compose.authorization.yaml up -d`. See
+[`dev-fixtures/README.md`](./dev-fixtures/README.md#authorization-scenarios).
 
 ## Testing
 

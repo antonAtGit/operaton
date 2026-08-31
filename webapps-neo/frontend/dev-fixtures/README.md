@@ -23,6 +23,7 @@ dev-fixtures/
     ├── bot.js                        long-running worker bot
     ├── spawn.js                      manual instance creation
     ├── stress.js                     load profiles
+    ├── seed-auth.js                  role groups, users and authorizations
     ├── config.json                   tunable knobs
     └── lib/                          internals (engine client, RNG, topics)
 ```
@@ -40,7 +41,7 @@ Then:
 
 - Engine + REST → <http://localhost:8084>
 - Web app dev server (separate, `npm run dev`) → <http://localhost:5173>
-- **Control panel** → <http://localhost:3001>  (buttons for deploy / bot / spawn / stress)
+- **Control panel** → <http://localhost:3001> (buttons for deploy / bot / spawn / stress)
 
 ### B. Engine in Docker, bot on the host (faster iteration on the bot)
 
@@ -83,20 +84,20 @@ npm run stress
 
 Presets and overrides:
 
-| flag                         | effect                                                  |
-| ---------------------------- | ------------------------------------------------------- |
-| `--preset tiny`              | 50 instances                                            |
-| `--preset small`             | 100                                                     |
-| `--preset default`           | 1000  *(default)*                                       |
-| `--preset big`               | 10 000                                                  |
-| `--preset huge`              | 100 000  (bring snacks)                                 |
-| `--count N`                  | custom count, implies `--preset custom`                 |
-| `--mode burst`               | fire as fast as possible, then exit                     |
-| `--mode rampup` *(default)*  | linearly increase rate over `--duration`                |
-| `--mode soak`                | keep ~N concurrent for `--duration`, topping up         |
-| `--duration 10m`             | rampup/soak window (`s`/`m`/`h` suffix)                 |
-| `--rate 60/min`              | spawn-rate cap                                          |
-| `--process orderFulfillment` | restrict to one process key (default: weighted mix)     |
+| flag                         | effect                                              |
+| ---------------------------- | --------------------------------------------------- |
+| `--preset tiny`              | 50 instances                                        |
+| `--preset small`             | 100                                                 |
+| `--preset default`           | 1000 _(default)_                                    |
+| `--preset big`               | 10 000                                              |
+| `--preset huge`              | 100 000 (bring snacks)                              |
+| `--count N`                  | custom count, implies `--preset custom`             |
+| `--mode burst`               | fire as fast as possible, then exit                 |
+| `--mode rampup` _(default)_  | linearly increase rate over `--duration`            |
+| `--mode soak`                | keep ~N concurrent for `--duration`, topping up     |
+| `--duration 10m`             | rampup/soak window (`s`/`m`/`h` suffix)             |
+| `--rate 60/min`              | spawn-rate cap                                      |
+| `--process orderFulfillment` | restrict to one process key (default: weighted mix) |
 
 Examples:
 
@@ -105,6 +106,69 @@ npm run stress -- --preset big --mode burst
 npm run stress -- --count 5000 --mode rampup --duration 15m
 npm run stress -- --preset big --mode soak --duration 1h
 ```
+
+## Authorization scenarios
+
+Everything above runs as `demo`, who is in `operaton-admin` and therefore sees
+everything — which is exactly the wrong shape for testing anything
+role-dependent. `seed-auth.js` seeds three role groups, four users and the
+permissions that separate them.
+
+```sh
+docker compose -f docker-compose.authorization.yaml up -d   # in the repo root
+cd dev-fixtures/bot
+npm run deploy
+npm run seed-auth
+```
+
+The regular `docker-compose.yaml` **will not do** here: it runs without engine
+authorization, and then every permission check answers `true` for everybody, so
+nothing is gated and nothing is visible. `seed-auth.js` detects that and warns.
+The authorization compose file also disables the bundled invoice example, which
+otherwise crashes the engine on startup once authorization is on.
+
+### Who gets what
+
+Password equals the user id. These are throwaway local fixtures.
+
+| user    | groups                      | area (application id)          | can do inside                                       |
+| ------- | --------------------------- | ------------------------------ | --------------------------------------------------- |
+| `anna`  | `sachbearbeiter`            | Arbeitsbereich (`tasklist`)    | read/start processes, work on tasks, read decisions |
+| `ben`   | `betrieb`                   | Cockpit (`cockpit`)            | read instances + history, migrate, suspend, batches |
+| `carla` | `systemadmin`               | Administration (`admin`)       | users, groups, memberships, authorizations, tenants |
+| `dora`  | `sachbearbeiter`, `betrieb` | Arbeitsbereich **and** Cockpit | the union of the two                                |
+| `demo`  | `operaton-admin`            | all of them                    | everything — admins bypass the checks               |
+
+`dora` exists to prove the areas are checked one by one rather than resolved
+from a single role.
+
+### The two layers, and why they are separate
+
+The script seeds two kinds of authorization, and mixing them up is the usual
+source of confusion:
+
+1. **Application `ACCESS`** (`resourceType` 0, ids `tasklist` / `cockpit` /
+   `admin`) — _may I see this area at all_. The web app's area navigation gates
+   on exactly this, via
+   `GET /authorization/check?permissionName=ACCESS&resourceName=application&resourceType=0&resourceId=cockpit`.
+   The ids are the historical Camunda app ids on purpose, so a migrated
+   installation keeps the app access it already granted.
+2. **Resource authorizations** (process definition, task, deployment, user, …)
+   — _what may I actually do once I am in there_. This is the engine's ordinary
+   permission model and predates any of this.
+
+They fail differently, which is the useful part: a user with only (1) reaches
+the area and finds it empty, a user with only (2) can work but the area stays
+shut. `carla` is the clean illustration — full administration rights, and zero
+process definitions visible.
+
+Re-running is safe; existing groups, users, memberships and grants are left
+alone. `npm run seed-auth -- --verify-only` skips seeding and just prints the
+access matrix.
+
+> **Group ids are alphanumeric.** The engine's resource whitelist rejects
+> `system-admin` outright (`'system-admin' is not a valid resource identifier`);
+> only `operaton-admin` is exempt. Hence `systemadmin`.
 
 ## Reproducibility
 
@@ -119,14 +183,14 @@ deterministic stream.
 `server.js` exposes the bot as a tiny HTTP service with a one-page UI under
 `bot/public/`. Buttons map onto the CLIs:
 
-| Button         | What runs                       |
-| -------------- | ------------------------------- |
-| Deploy         | `node deploy.js`                |
-| Start bot      | `node bot.js [--auto-deploy]`   |
-| Stop bot       | `SIGTERM` to the bot child      |
-| Spawn          | `node spawn.js …`               |
-| Stress         | `node stress.js …`              |
-| Cancel stress  | `SIGTERM` to the stress child   |
+| Button        | What runs                     |
+| ------------- | ----------------------------- |
+| Deploy        | `node deploy.js`              |
+| Start bot     | `node bot.js [--auto-deploy]` |
+| Stop bot      | `SIGTERM` to the bot child    |
+| Spawn         | `node spawn.js …`             |
+| Stress        | `node stress.js …`            |
+| Cancel stress | `SIGTERM` to the stress child |
 
 Recent jobs and their stdout are kept in memory (max 50) so you can scroll
 back. Output for any job: `GET /api/jobs/<id>`.
@@ -135,13 +199,13 @@ back. Output for any job: `GET /api/jobs/<id>`.
 
 These override `config.json` (handy in containers):
 
-| var                              | overrides           |
-| -------------------------------- | ------------------- |
-| `DEV_FIXTURES_ENGINE_URL`        | `engine.url`        |
-| `DEV_FIXTURES_ENGINE_USERNAME`   | `engine.auth.username` |
-| `DEV_FIXTURES_ENGINE_PASSWORD`   | `engine.auth.password` |
-| `DEV_FIXTURES_SEED`              | `seed`              |
-| `PORT`                           | server port (3000)  |
+| var                            | overrides              |
+| ------------------------------ | ---------------------- |
+| `DEV_FIXTURES_ENGINE_URL`      | `engine.url`           |
+| `DEV_FIXTURES_ENGINE_USERNAME` | `engine.auth.username` |
+| `DEV_FIXTURES_ENGINE_PASSWORD` | `engine.auth.password` |
+| `DEV_FIXTURES_SEED`            | `seed`                 |
+| `PORT`                         | server port (3000)     |
 
 ## Knobs in `config.json`
 
@@ -198,9 +262,10 @@ curl -u demo:demo -X POST http://localhost:8084/engine-rest/process-instance/del
 
 Add `processDefinitionKey` to the query if you want to be more surgical.
 
-## What this purposefully does *not* cover (yet)
+## What this purposefully does _not_ cover (yet)
 
 - Ad-hoc subprocesses, transactions with cancel boundaries, complex gateways —
   rarely used, easy to add when needed.
-- Tenant or authorization scenarios — orthogonal, separate concern.
+- Tenant scenarios — orthogonal, separate concern. (Authorization scenarios
+  are covered now, see above.)
 - Migrations — the existing migration page already handles that.
