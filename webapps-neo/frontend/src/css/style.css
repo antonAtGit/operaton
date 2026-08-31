@@ -1097,6 +1097,15 @@
     text-align: center;
   }
 
+  /* The area sidebar sits beside the routed page, so the two share one row.
+     #app is a column, so this shell takes over the `flex: 1` that `main` held
+     when it was a direct child. */
+  #area-shell {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+
   .admin-page {
     display: flex;
     flex: 1;

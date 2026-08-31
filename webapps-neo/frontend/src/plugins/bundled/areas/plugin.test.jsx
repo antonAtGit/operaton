@@ -66,6 +66,16 @@ describe("Areas plugin — descriptors", () => {
     for (const area of AREAS) expect(area.match).not.toContain("/decisions");
   });
 
+  it("feeds the sidebar everywhere except Administration", () => {
+    const links_of = (key) =>
+      page_descriptors.find((d) => d.id === `area-${key}`).properties.links;
+    expect(links_of("arbeit").map((l) => l.href)).toContain("/tasks");
+    expect(links_of("cockpit").map((l) => l.href)).toContain("/processes");
+    // The Admin page renders its own sidebar over the same links; a second one
+    // from AreaSubNav would duplicate it.
+    expect(links_of("verwaltung")).toBeUndefined();
+  });
+
   it("gives each area a distinct hotkey", () => {
     const hotkeys = page_descriptors.map((d) => d.properties.hotkey);
     expect(hotkeys).toEqual(["alt+shift+1", "alt+shift+2", "alt+shift+3"]);

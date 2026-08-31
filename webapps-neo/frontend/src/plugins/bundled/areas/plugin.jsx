@@ -70,6 +70,7 @@ const AREAS = [
     app_id: "admin",
     hotkey: "alt+shift+3",
     match: ["/admin"],
+    subnav: false,
     links: [
       { href: "/admin/users", label_key: "admin.users" },
       { href: "/admin/groups", label_key: "admin.groups" },
@@ -285,6 +286,10 @@ const page_descriptor = (area) => ({
     nameKey: `plugins.areas.${area.key}.nav`,
     hotkey: area.hotkey,
     match: area.match,
+    // Drives the AreaSubNav sidebar on the pages this area groups. The
+    // Administration area declares none: the Admin page already ships its own
+    // sidebar over the very same links, and a second one would duplicate it.
+    links: area.subnav === false ? undefined : area.links,
   },
   Component: () => <AreaPage area={area} />,
 });

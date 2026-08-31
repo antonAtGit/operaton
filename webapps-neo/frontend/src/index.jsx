@@ -31,6 +31,7 @@ import { get_config, load_config } from "./config.js";
 import { useTranslation } from "react-i18next";
 import { load_plugins } from "./plugins/loader.js";
 import { install_plugin_host } from "./plugins/host.js";
+import { AreaSubNav } from "./components/AreaSubNav.jsx";
 import { plugins_for } from "./plugins/registry.js";
 import { PLUGIN_POINTS } from "./plugins/points.js";
 
@@ -99,42 +100,47 @@ const Routing = () => {
     return (
       <LocationProvider>
         <Header />
-        <Router>
-          <Route path="/" component={DashboardPage} />
-          <Route
-            path="/decisions/:decision_id?/:panel?"
-            component={DecisionsPage}
-          />
-          {/*<Route path="/tasks/start/:id" component={TasksPage} />*/}
-          <Route path="/tasks/:task_id?/:tab?" component={TasksPage} />
-          <Route
-            path="/processes/:definition_id?/:panel?/:selection_id?/:sub_panel?"
-            component={ProcessesPage}
-          />
-          <Route path="/migrations" component={MigrationsPage} />
-          <Route
-            path="/deployments/:deployment_id?/:resource_name?"
-            component={DeploymentsPage}
-          />
-          <Route path="/batches/:batch_id?" component={BatchesPage} />
-          <Route
-            path="/admin/:page_id?/:selection_id?/:sub_selection_id?"
-            component={AdminPage}
-          />
-          <Route
-            path="/account/:page_id?/:selection_id?"
-            component={AccountPage}
-          />
-          <Route path="/help" component={Home} />
-          {plugins_for(PLUGIN_POINTS.PAGE).map((plugin) => (
+        {/* The area sidebar and the routed page share one row; see
+            #area-shell in style.css. */}
+        <div id="area-shell">
+          <AreaSubNav />
+          <Router>
+            <Route path="/" component={DashboardPage} />
             <Route
-              key={plugin.id}
-              path={plugin.properties.path}
-              component={plugin.Component}
+              path="/decisions/:decision_id?/:panel?"
+              component={DecisionsPage}
             />
-          ))}
-          <Route default component={NotFound} />
-        </Router>
+            {/*<Route path="/tasks/start/:id" component={TasksPage} />*/}
+            <Route path="/tasks/:task_id?/:tab?" component={TasksPage} />
+            <Route
+              path="/processes/:definition_id?/:panel?/:selection_id?/:sub_panel?"
+              component={ProcessesPage}
+            />
+            <Route path="/migrations" component={MigrationsPage} />
+            <Route
+              path="/deployments/:deployment_id?/:resource_name?"
+              component={DeploymentsPage}
+            />
+            <Route path="/batches/:batch_id?" component={BatchesPage} />
+            <Route
+              path="/admin/:page_id?/:selection_id?/:sub_selection_id?"
+              component={AdminPage}
+            />
+            <Route
+              path="/account/:page_id?/:selection_id?"
+              component={AccountPage}
+            />
+            <Route path="/help" component={Home} />
+            {plugins_for(PLUGIN_POINTS.PAGE).map((plugin) => (
+              <Route
+                key={plugin.id}
+                path={plugin.properties.path}
+                component={plugin.Component}
+              />
+            ))}
+            <Route default component={NotFound} />
+          </Router>
+        </div>
         <GoTo />
       </LocationProvider>
     );
