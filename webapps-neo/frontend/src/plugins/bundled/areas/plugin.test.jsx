@@ -54,6 +54,24 @@ describe("Areas plugin — descriptors", () => {
     }
   });
 
+  it("claims the routes it groups, so the nav entry stays highlighted", () => {
+    const claims = Object.fromEntries(
+      AREAS.map((area) => [area.key, area.match]),
+    );
+    expect(claims.arbeit).toContain("/tasks");
+    expect(claims.cockpit).toContain("/processes");
+    expect(claims.verwaltung).toContain("/admin");
+    // /decisions belongs to two areas, so neither may claim it — otherwise two
+    // nav entries would report aria-current at once.
+    for (const area of AREAS) expect(area.match).not.toContain("/decisions");
+  });
+
+  it("gives each area a distinct hotkey", () => {
+    const hotkeys = page_descriptors.map((d) => d.properties.hotkey);
+    expect(hotkeys).toEqual(["alt+shift+1", "alt+shift+2", "alt+shift+3"]);
+    expect(new Set(hotkeys).size).toBe(3);
+  });
+
   it("maps each area to the engine's existing application id", () => {
     expect(AREAS.map((area) => area.app_id)).toEqual([
       "tasklist",

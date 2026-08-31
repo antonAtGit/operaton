@@ -39,6 +39,11 @@ const AREAS = [
     key: "arbeit",
     path: "/arbeit",
     app_id: "tasklist",
+    hotkey: "alt+shift+1",
+    // Routes that keep this area marked current in the primary nav. /decisions
+    // is deliberately absent: both Arbeitsbereich and Cockpit link to it, and a
+    // path claimed twice would mark two entries at once.
+    match: ["/tasks"],
     links: [
       { href: "/tasks", label_key: "nav.tasks" },
       { href: "/tasks/start", label_key: "plugins.areas.links.start-process" },
@@ -49,6 +54,8 @@ const AREAS = [
     key: "cockpit",
     path: "/cockpit",
     app_id: "cockpit",
+    hotkey: "alt+shift+2",
+    match: ["/processes", "/deployments", "/migrations", "/batches"],
     links: [
       { href: "/processes", label_key: "nav.processes" },
       { href: "/decisions", label_key: "nav.decisions" },
@@ -61,6 +68,8 @@ const AREAS = [
     key: "verwaltung",
     path: "/verwaltung",
     app_id: "admin",
+    hotkey: "alt+shift+3",
+    match: ["/admin"],
     links: [
       { href: "/admin/users", label_key: "admin.users" },
       { href: "/admin/groups", label_key: "admin.groups" },
@@ -274,6 +283,8 @@ const page_descriptor = (area) => ({
     path: area.path,
     href: area.path,
     nameKey: `plugins.areas.${area.key}.nav`,
+    hotkey: area.hotkey,
+    match: area.match,
   },
   Component: () => <AreaPage area={area} />,
 });

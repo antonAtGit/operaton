@@ -49,42 +49,25 @@ const renderHeader = (state) =>
 describe("Header", () => {
   let state;
   beforeEach(() => {
+    _reset_registry();
     state = create_mock_state();
     mockUrl = "/";
     route.mockClear();
     localStorage.clear();
   });
-  afterEach(cleanup);
-
-  it("renders the main navigation links with the right hrefs", () => {
-    const { container } = renderHeader(state);
-    const nav = container.querySelector("#primary-navigation");
-    const hrefs = Array.from(nav.querySelectorAll("li > a")).map((a) =>
-      a.getAttribute("href"),
-    );
-    // The logo link lives outside #primary-navigation now; the menu holds just
-    // the page entries.
-    expect(hrefs).toEqual([
-      "/tasks",
-      "/processes",
-      "/decisions",
-      "/deployments",
-      "/batches",
-      "/migrations",
-      "/admin",
-    ]);
+  afterEach(() => {
+    cleanup();
+    _reset_registry();
   });
 
-  it("marks the link for the current route as the current page", () => {
-    mockUrl = "/processes/p1";
+  it("carries no built-in page entries — the nav is plugin-driven", () => {
     const { container } = renderHeader(state);
     const nav = container.querySelector("#primary-navigation");
-    const processes = nav.querySelector('a[href="/processes"]');
-    const tasks = nav.querySelector('a[href="/tasks"]');
-    // The active link exposes its state via aria-current="page" (semantic,
-    // announced by screen readers) rather than a CSS class.
-    expect(processes.getAttribute("aria-current")).toBe("page");
-    expect(tasks.getAttribute("aria-current")).not.toBe("page");
+    // Tasks, Processes, Decisions, Deployments, Batches, Migrations and Admin
+    // used to be hard-coded here. They are reached through the areas that group
+    // them now, so with nothing registered the menu is empty. Their routes and
+    // their GoTo entries are untouched.
+    expect(nav.querySelectorAll("li > a")).toHaveLength(0);
   });
 
   it("renders an option per VITE_BACKEND server in the selector", () => {
@@ -160,5 +143,50 @@ describe("Header — plugin nav", () => {
       '#primary-navigation a[href="/plugin/test-nav"]',
     );
     expect(link.getAttribute("aria-current")).toBe("page");
+  });
+});
+
+describe("Header — nav entries claiming other routes", () => {
+  let state;
+  beforeEach(() => {
+    _reset_registry();
+    register({
+      id: "test-area",
+      point: PLUGIN_POINTS.PAGE,
+      properties: {
+        href: "/test-area",
+        nameKey: "plugins.test.area",
+        match: ["/tasks", "/batches"],
+      },
+      Component: () => null,
+    });
+    state = create_mock_state();
+    mockUrl = "/";
+  });
+  afterEach(() => {
+    cleanup();
+    _reset_registry();
+  });
+
+  const current = (container) =>
+    container
+      .querySelector('#primary-navigation a[href="/test-area"]')
+      ?.getAttribute("aria-current");
+
+  it("stays current on a route it claims via properties.match", () => {
+    // An area has to keep its nav entry highlighted while the user is on one of
+    // the pages it groups — otherwise nothing in the top bar is marked at all.
+    mockUrl = "/tasks/task-1";
+    expect(current(renderHeader(state).container)).toBe("page");
+  });
+
+  it("is current on its own route as well", () => {
+    mockUrl = "/test-area";
+    expect(current(renderHeader(state).container)).toBe("page");
+  });
+
+  it("is not current on an unclaimed route", () => {
+    mockUrl = "/decisions";
+    expect(current(renderHeader(state).container)).not.toBe("page");
   });
 });

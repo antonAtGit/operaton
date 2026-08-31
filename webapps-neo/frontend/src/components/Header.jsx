@@ -17,40 +17,43 @@ const swap_server = (e, state) => {
   localStorage.setItem("server", JSON.stringify(server));
 };
 
-// The built-in primary-nav entries. Hotkeys live here too (alt+shift+0 → "/"
-// is handled separately as the logo link).
-const builtin_nav = [
-  { href: "/tasks", nameKey: "nav.tasks", hotkey: "alt+shift+1" },
-  { href: "/processes", nameKey: "nav.processes", hotkey: "alt+shift+2" },
-  { href: "/decisions", nameKey: "nav.decisions", hotkey: "alt+shift+3" },
-  { href: "/deployments", nameKey: "nav.deployments", hotkey: "alt+shift+4" },
-  { href: "/batches", nameKey: "nav.batches", hotkey: "alt+shift+5" },
-  { href: "/migrations", nameKey: "nav.migrations", hotkey: "alt+shift+6" },
-  { href: "/admin", nameKey: "nav.admin", hotkey: "alt+shift+7" },
-];
-
-// Built-ins plus every PAGE plugin's nav entry — the single source of truth for
-// both the desktop menu and the mobile dialog.
-const nav_entries = () => [
-  ...builtin_nav,
-  ...plugins_for(PLUGIN_POINTS.PAGE)
+// Every PAGE plugin's nav entry — the single source of truth for both the
+// desktop menu and the mobile dialog.
+//
+// The primary nav is plugin-driven only. It used to also carry a flat built-in
+// list (Tasks, Processes, Decisions, Deployments, Batches, Migrations, Admin);
+// those pages are now reached through the areas that group them, so listing
+// them here as well duplicated every entry. The routes are unchanged and the
+// command palette (GoTo) still indexes all of them, so nothing became
+// unreachable — only the top bar got shorter.
+const nav_entries = () =>
+  plugins_for(PLUGIN_POINTS.PAGE)
     .filter((plugin) => plugin.properties?.href && plugin.properties?.nameKey)
     .map((plugin) => ({
       href: plugin.properties.href,
       nameKey: plugin.properties.nameKey,
       hotkey: plugin.properties.hotkey,
-    })),
-];
+      match: plugin.properties.match,
+    }));
+
+// A nav entry is current on its own route, and on any route it declares via
+// `properties.match` — that is how an area stays highlighted while you are on
+// one of the pages it groups (e.g. /tasks keeps "Arbeitsbereich" marked). A
+// path claimed by two entries is left out of both, so exactly one entry can be
+// current at a time.
+const is_current = (entry, url) =>
+  url.startsWith(entry.href) ||
+  (entry.match ?? []).some((prefix) => url.startsWith(prefix));
 
 // Rendered in both the desktop <menu> and the mobile <dialog> so nav entries
-// (built-in and plugin) are declared exactly once.
+// are declared exactly once.
 const MainNavEntries = ({ url, on_navigate }) => {
   const [t] = useTranslation();
   return nav_entries().map((entry) => (
     <li key={entry.href}>
       <a
         href={entry.href}
-        aria-current={url.startsWith(entry.href) ? "page" : undefined}
+        aria-current={is_current(entry, url) ? "page" : undefined}
         onClick={on_navigate}
       >
         {t(entry.nameKey)}
@@ -69,14 +72,9 @@ export function Header() {
     close_mobile_menu = () => document.getElementById("mobile-menu").close(),
     logout = () => engine_rest.auth.logout(state);
 
+  // alt+shift+0 is the logo link; every other nav hotkey now comes from the
+  // PAGE plugin that owns the entry (see below).
   useHotkeys("alt+shift+0", () => route("/"));
-  useHotkeys("alt+shift+1", () => route("/tasks"));
-  useHotkeys("alt+shift+2", () => route("/processes"));
-  useHotkeys("alt+shift+3", () => route("/decisions"));
-  useHotkeys("alt+shift+4", () => route("/deployments"));
-  useHotkeys("alt+shift+5", () => route("/batches"));
-  useHotkeys("alt+shift+6", () => route("/migrations"));
-  useHotkeys("alt+shift+7", () => route("/admin"));
 
   // Plugin page hotkeys, resolved in one handler. The list is frozen before
   // render, so the combined keys string is stable across renders.
@@ -114,7 +112,8 @@ export function Header() {
             <a href="https://github.com/operaton/operaton/issues">
               {t("nav.release-warning-issue")}
             </a>{" "}
-            {t("nav.release-warning-forum") !== t("nav.release-warning-issue") && (
+            {t("nav.release-warning-forum") !==
+              t("nav.release-warning-issue") && (
               <>
                 {t("nav.release-warning-or")}{" "}
                 <a href="https://forum.operaton.org/">
