@@ -5,7 +5,11 @@ import { useTranslation } from "react-i18next";
  * opens the manage page, then a sort selector aligned to the right. CRUD
  * for saved filters lives in <ManageFilters>, not here.
  *
- * @param sort_options       {Array<{ key, nameKey }>}
+ * The sort selectors are only rendered when `sort_options` is given. A list
+ * that sorts through its column headers (see <SortableColumn>) omits the prop
+ * and keeps the saved-filter half of the toolbar, which is a separate concern.
+ *
+ * @param sort_options       {Array<{ key, nameKey }>} omit to hide the sort selectors
  * @param saved_filters_signal {Signal<{ status, data: SavedFilter[] } | null>}
  * @param current            {{ saved_filter_id, sortBy, sortOrder, criteria }}
  * @param defaults           {{ sortBy, sortOrder }}
@@ -56,28 +60,30 @@ export const ListFilter = ({
           {t("list_filter.edit")}
         </button>
       </div>
-      <div class="list-filter-group">
-        <label for="list-filter-sort-by">{t("list_filter.sort_by")}</label>
-        <select
-          id="list-filter-sort-by"
-          value={current.sortBy ?? defaults.sortBy}
-          onChange={(e) => on_change?.({ sortBy: e.currentTarget.value })}
-        >
-          {sort_options.map((o) => (
-            <option key={o.key} value={o.key}>
-              {t(o.nameKey)}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label={t("list_filter.sort_order")}
-          value={current.sortOrder ?? defaults.sortOrder}
-          onChange={(e) => on_change?.({ sortOrder: e.currentTarget.value })}
-        >
-          <option value="asc">{t("list_filter.asc")}</option>
-          <option value="desc">{t("list_filter.desc")}</option>
-        </select>
-      </div>
+      {sort_options ? (
+        <div class="list-filter-group">
+          <label for="list-filter-sort-by">{t("list_filter.sort_by")}</label>
+          <select
+            id="list-filter-sort-by"
+            value={current.sortBy ?? defaults.sortBy}
+            onChange={(e) => on_change?.({ sortBy: e.currentTarget.value })}
+          >
+            {sort_options.map((o) => (
+              <option key={o.key} value={o.key}>
+                {t(o.nameKey)}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label={t("list_filter.sort_order")}
+            value={current.sortOrder ?? defaults.sortOrder}
+            onChange={(e) => on_change?.({ sortOrder: e.currentTarget.value })}
+          >
+            <option value="asc">{t("list_filter.asc")}</option>
+            <option value="desc">{t("list_filter.desc")}</option>
+          </select>
+        </div>
+      ) : null}
     </div>
   );
 };

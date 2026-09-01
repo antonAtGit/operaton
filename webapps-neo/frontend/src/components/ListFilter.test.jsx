@@ -86,3 +86,24 @@ describe("ListFilter", () => {
     expect(on_manage).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("ListFilter — sort selectors", () => {
+  afterEach(cleanup);
+
+  it("hides them when no sort options are given", () => {
+    // A list that sorts through its column headers omits `sort_options`;
+    // keeping the selectors would be a second control for one setting.
+    const { container } = render(
+      <ListFilter {...base_props({ sort_options: undefined })} />,
+    );
+    expect(container.querySelector("#list-filter-sort-by")).toBeNull();
+  });
+
+  it("keeps the saved-filter half regardless", () => {
+    // Saved filters are a separate concern and stay in the toolbar.
+    const { container } = render(
+      <ListFilter {...base_props({ sort_options: undefined })} />,
+    );
+    expect(container.querySelector("#list-filter-saved")).toBeTruthy();
+  });
+});

@@ -11,6 +11,8 @@ import { AppState } from "../state.js";
 import { BPMNViewer } from "../components/BPMNViewer.jsx";
 import { Dialog, ConfirmDialog } from "../components/Dialog.jsx";
 import { ListFilter } from "../components/ListFilter.jsx";
+import { SortableColumn } from "../components/SortableColumn.jsx";
+import { sort_rows } from "../helper/sort_rows.js";
 import { ManageFilters } from "../components/ManageFilters.jsx";
 import { Breadcrumbs } from "../components/Breadcrumbs.jsx";
 import {
@@ -113,6 +115,16 @@ const SORT_OPTIONS = [
   { key: "deploymentId", nameKey: "processes.sort.deploymentId" },
   { key: "tenantId", nameKey: "processes.sort.tenantId" },
 ];
+
+/**
+ * Reads the value a definitions row is sorted by. `incidents` and `instances`
+ * are aggregated per row in the client, and are sortable for exactly that
+ * reason — the engine has no sort key for either.
+ */
+const definition_sort_value = (entry, sort_by) =>
+  sort_by === "incidents" || sort_by === "instances"
+    ? (entry[sort_by] ?? 0)
+    : entry.definition?.[sort_by];
 
 const FILTER_KEYS = [
   { key: "name", nameKey: "processes.filter_keys.name", type: "string" },
@@ -654,9 +666,9 @@ const ProcessDefinitionSelection = () => {
   const has_criteria = Object.keys(parsed.criteria).length > 0;
 
   const list_value = definition.list.value;
-  const rows = list_value?.data ?? [];
+  const unsorted_rows = list_value?.data ?? [];
   const has_data = list_value?.status === RESPONSE_STATE.SUCCESS;
-  const is_empty = has_data && rows.length === 0 && !has_criteria;
+  const is_empty = has_data && unsorted_rows.length === 0 && !has_criteria;
 
   const apply_patch = (patch) => {
     const next = write_list_query(window.location.href, patch);
@@ -669,6 +681,7 @@ const ProcessDefinitionSelection = () => {
     sortOrder: parsed.sortOrder ?? "asc",
     criteria: parsed.criteria,
   };
+  const rows = sort_rows(unsorted_rows, list_current, definition_sort_value);
 
   if (query.filters === "manage") return <DefinitionsManage />;
 
@@ -761,8 +774,9 @@ const ProcessDefinitionSelection = () => {
           )}
         </div>
       </div>
+      {/* No `sort_options`: this list sorts through its column headers, so the
+          toolbar's sort selectors would be a second control for one setting. */}
       <ListFilter
-        sort_options={SORT_OPTIONS}
         saved_filters_signal={definition.saved_filters}
         current={list_current}
         defaults={{ sortBy: "name", sortOrder: "asc" }}
@@ -785,21 +799,62 @@ const ProcessDefinitionSelection = () => {
                     onChange={toggle_all}
                   />
                 </th>
-                <th>{t("common.name")}</th>
-                <th class="num" title={t("processes.tabs.incidents")}>
+                <SortableColumn
+                  sort_key="name"
+                  current={list_current}
+                  on_change={apply_patch}
+                >
+                  {t("common.name")}
+                </SortableColumn>
+                <SortableColumn
+                  sort_key="incidents"
+                  class="num"
+                  title={t("processes.tabs.incidents")}
+                  current={list_current}
+                  on_change={apply_patch}
+                >
                   {t("processes.col-abbr.incidents")}
-                </th>
-                <th class="num" title={t("dashboard.instances")}>
+                </SortableColumn>
+                <SortableColumn
+                  sort_key="instances"
+                  class="num"
+                  title={t("dashboard.instances")}
+                  current={list_current}
+                  on_change={apply_patch}
+                >
                   {t("processes.col-abbr.instances")}
-                </th>
-                <th>{t("common.key")}</th>
-                <th class="num" title={t("processes.version")}>
+                </SortableColumn>
+                <SortableColumn
+                  sort_key="key"
+                  current={list_current}
+                  on_change={apply_patch}
+                >
+                  {t("common.key")}
+                </SortableColumn>
+                <SortableColumn
+                  sort_key="version"
+                  class="num"
+                  title={t("processes.version")}
+                  current={list_current}
+                  on_change={apply_patch}
+                >
                   {t("processes.col-abbr.version")}
-                </th>
-                <th>{t("common.id")}</th>
-                <th title={t("processes.tenant-id")}>
+                </SortableColumn>
+                <SortableColumn
+                  sort_key="id"
+                  current={list_current}
+                  on_change={apply_patch}
+                >
+                  {t("common.id")}
+                </SortableColumn>
+                <SortableColumn
+                  sort_key="tenantId"
+                  title={t("processes.tenant-id")}
+                  current={list_current}
+                  on_change={apply_patch}
+                >
                   {t("processes.col-abbr.tenant-id")}
-                </th>
+                </SortableColumn>
               </tr>
             </thead>
             <tbody>

@@ -1626,6 +1626,42 @@
     z-index: 1;
   }
 
+  /* A sortable header is a button that has to pass for a header: it inherits
+     the cell's typography instead of looking like a control. */
+  thead th > button.sort-column {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+  }
+
+  thead th.num > button.sort-column {
+    justify-content: flex-end;
+  }
+
+  /* Reserved whether or not the arrow is showing, so the labels of the other
+     columns do not shift sideways when the sort column changes. */
+  .sort-indicator {
+    display: inline-flex;
+    flex: none;
+    width: 1em;
+    height: 1em;
+  }
+
+  .sort-indicator svg {
+    width: 100%;
+    height: 100%;
+  }
+
   table thead th:first-child {
     position: sticky;
     left: 0;
