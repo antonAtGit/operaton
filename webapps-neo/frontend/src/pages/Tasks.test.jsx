@@ -163,6 +163,58 @@ describe("TasksPage", () => {
       expect(engine_rest.task.get_tasks.mock.lastCall[3]).toBe(1);
     });
 
+    it("watches a sentinel so the next page arrives on scroll", () => {
+      state.api.task.list.value = {
+        status: RESPONSE_STATE.SUCCESS,
+        data: [sample_task({ id: "t1" })],
+        hasMore: true,
+      };
+      const { container } = renderPage(state);
+      const sentinel = container.querySelector(".load-more-sentinel");
+      expect(sentinel).toBeTruthy();
+      // Decorative: crossing it is a scroll event, not something to announce.
+      expect(sentinel.getAttribute("aria-hidden")).toBe("true");
+    });
+
+    it("keeps the button while more pages exist, for keyboard users", () => {
+      // The observer only ever fires on a scroll, so removing the button would
+      // strand anyone paging with the keyboard.
+      state.api.task.list.value = {
+        status: RESPONSE_STATE.SUCCESS,
+        data: [sample_task({ id: "t1" })],
+        hasMore: true,
+      };
+      const { getByText } = renderPage(state);
+      expect(getByText("tasks.load-more")).toBeTruthy();
+    });
+
+    it("reports the fetch instead of the button while a page is loading", () => {
+      // PAGINATED_GET keeps the rows it has and flips to LOADING, which is how
+      // an append is told apart from the first load.
+      state.api.task.list.value = {
+        status: RESPONSE_STATE.LOADING,
+        data: [sample_task({ id: "t1" })],
+        hasMore: true,
+      };
+      const { container, queryByText } = renderPage(state);
+      expect(container.querySelector(".load-more-loading")).toBeTruthy();
+      expect(queryByText("tasks.load-more")).toBeNull();
+    });
+
+    it("keeps the rows on screen while the next page loads", () => {
+      // RequestState would otherwise swap the whole tbody for its loading note,
+      // blanking the list on every scroll to the end and unmounting the
+      // sentinel with it.
+      state.api.task.list.value = {
+        status: RESPONSE_STATE.LOADING,
+        data: [sample_task({ id: "t1", name: "Still here" })],
+        hasMore: true,
+      };
+      const { getByText, container } = renderPage(state);
+      expect(getByText("Still here")).toBeTruthy();
+      expect(container.querySelector(".load-more-sentinel")).toBeTruthy();
+    });
+
     it("shows the end-of-list note when there are no more items", () => {
       state.api.task.list.value = {
         status: RESPONSE_STATE.SUCCESS,

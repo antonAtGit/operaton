@@ -12,6 +12,7 @@ import { BPMNViewer } from "../components/BPMNViewer.jsx";
 import { Tabs } from "../components/Tabs.jsx";
 import { ListFilter } from "../components/ListFilter.jsx";
 import { ManageFilters } from "../components/ManageFilters.jsx";
+import { use_infinite_scroll } from "../helper/infinite_scroll.js";
 import {
   filter_share_link,
   parse_list_query,
@@ -314,6 +315,28 @@ const TaskList = () => {
     },
     open_manage = () => route(with_manage(), false);
 
+  const task_rows = () =>
+    taskList.value?.data?.map((task) => (
+      <TaskRowEntry
+        key={task.id}
+        task={task}
+        selected={task.id === selectedTaskId}
+      />
+    ));
+
+  const has_more = taskList.value?.hasMore === true,
+    // PAGINATED_GET keeps the rows it already has while fetching the next page,
+    // so "loading with rows" is the append, as opposed to the first load.
+    is_loading_more =
+      taskList.value?.status === RESPONSE_STATE.LOADING &&
+      (taskList.value?.data?.length ?? 0) > 0;
+
+  // Disabled while a request is in flight, which is what stops the observer
+  // from firing a second time for the same page.
+  const sentinel = use_infinite_scroll(load_more, {
+    enabled: has_more && !is_loading_more,
+  });
+
   const list_current = {
     saved_filter_id: query?.filter ?? null,
     sortBy: query?.sortBy ?? "name",
@@ -348,25 +371,33 @@ const TaskList = () => {
           <tbody>
             <RequestState
               signal={taskList}
-              on_success={() =>
-                taskList.value?.data?.map((task) => (
-                  <TaskRowEntry
-                    key={task.id}
-                    task={task}
-                    selected={task.id === selectedTaskId}
-                  />
-                ))
-              }
+              /* While a further page is on its way, keep the rows already on
+                 screen. RequestState otherwise replaces the whole tbody with
+                 its loading note, which would blank the list on every scroll to
+                 the end — and take the sentinel down with it. The spinner below
+                 the table reports the fetch instead. */
+              on_load={is_loading_more ? task_rows() : null}
+              on_success={() => task_rows()}
             />
           </tbody>
         </table>
-        {taskList.value?.hasMore === true ? (
-          <button class="load-more" onClick={load_more}>
-            {t("tasks.load-more")}
-          </button>
-        ) : taskList.value?.hasMore === false ? (
-          <small class="load-more-end">{t("tasks.no-more-items")}</small>
-        ) : null}
+        {/* Watched rather than shown: crossing it fetches the next page.
+            Sits above the button so it is reached slightly before the true end. */}
+        <div ref={sentinel} class="load-more-sentinel" aria-hidden="true" />
+        <div class="load-more-status" aria-live="polite">
+          {is_loading_more ? (
+            <small class="load-more-loading">{t("common.loading")}</small>
+          ) : has_more ? (
+            /* Kept deliberately: the observer never fires without a scroll, so
+               this is the way through for keyboard and assistive-tech users,
+               and the fallback where IntersectionObserver is unavailable. */
+            <button class="load-more" onClick={load_more}>
+              {t("tasks.load-more")}
+            </button>
+          ) : taskList.value?.hasMore === false ? (
+            <small class="load-more-end">{t("tasks.no-more-items")}</small>
+          ) : null}
+        </div>
       </div>
       <a href="/tasks/start" class="button start-process">
         {t("tasks.start-process-label")}
