@@ -16,10 +16,18 @@
         <link rel="stylesheet" type="text/css" href="/css/dmn/dmn-font.css" media="screen">
 
     </head>
-    <body id="app">
+    <body>
         <noscript>
             The Operaton web apps require JavaScript for usage.
         </noscript>
+
+        <!-- The app mounts here rather than straight into <body>. Rendering
+             into the body puts the app's own elements among whatever else lives
+             there — the noscript, the module script, and anything a browser
+             extension injects — and an extension that reorders the body's
+             children then reorders the app's layout with it. Its own container
+             keeps the two apart. -->
+        <div id="app"></div>
 
         <script type="module" src="/src/index.jsx"></script>
     </body>

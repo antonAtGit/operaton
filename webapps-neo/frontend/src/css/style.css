@@ -505,6 +505,11 @@
   }
 
   #top {
+    /* Belt and braces with the dedicated #app container: the header keeps its
+       place at the top of the flex column whatever its DOM index, so a browser
+       extension that reorders elements cannot push it to the bottom of the
+       page. */
+    order: -1;
     top: 0;
     position: sticky;
     display: flex;
