@@ -7,6 +7,8 @@ import { has_data } from '../api/helper.jsx'
 import { AppState } from '../state.js'
 import { Breadcrumbs } from '../components/Breadcrumbs.jsx'
 import { Dialog, ConfirmDialog } from '../components/Dialog.jsx'
+import { SortableColumn } from '../components/SortableColumn.jsx'
+import { sort_rows } from '../helper/sort_rows.js'
 
 const AdminPage = () => {
   const
@@ -501,15 +503,140 @@ const MemberSection = ({ title, list_signal, empty, add_label, id_label, on_add,
 
 /* ----------------------------------------------------------------- System */
 
+/* The four counters the engine keeps, in the order an operator reads them:
+   how much ran, then how finely it was measured. */
+const TELEMETRY_METRICS = [
+  'process-instances',
+  'flow-node-instances',
+  'decision-instances',
+  'executed-decision-elements'
+]
+
+/** `{ CommandName: { count } }` as rows a table can sort and filter. */
+export const command_rows = (commands) =>
+  Object.entries(commands ?? {}).map(([name, value]) => ({ name, count: value?.count ?? 0 }))
+
+const Row = ({ label, children }) => children === undefined || children === null || children === ''
+  ? null
+  : <><dt>{label}</dt><dd>{children}</dd></>
+
+/** Installation identity and the environment it runs on — the block support asks for first. */
+const TelemetryEnvironment = ({ data }) => {
+  const [t] = useTranslation(),
+    internals = data?.product?.internals ?? {},
+    started = internals['data-collection-start-date'],
+    integration = internals['operaton-integration'] ?? []
+
+  return <section class="telemetry-section">
+    <h3>{t("admin.telemetry.environment")}</h3>
+    <dl class="telemetry-facts">
+      <Row label={t("admin.telemetry.product")}>{data?.product?.name}</Row>
+      <Row label={t("admin.telemetry.version")}>{data?.product?.version}</Row>
+      <Row label={t("admin.telemetry.edition")}>{data?.product?.edition}</Row>
+      <Row label={t("admin.telemetry.installation")}><code>{data?.installation}</code></Row>
+      <Row label={t("admin.telemetry.database")}>{vendor_version(internals.database)}</Row>
+      <Row label={t("admin.telemetry.jdk")}>{vendor_version(internals.jdk)}</Row>
+      <Row label={t("admin.telemetry.app-server")}>{vendor_version(internals['application-server'])}</Row>
+      <Row label={t("admin.telemetry.integration")}>{integration.length ? integration.join(', ') : null}</Row>
+      <Row label={t("admin.telemetry.collected-since")}>
+        {started ? new Date(started).toLocaleString() : null}
+      </Row>
+    </dl>
+  </section>
+}
+
+/**
+ * "Apache Tomcat 11.0.25" out of { vendor, version }; either half may be missing.
+ * Some values already carry the vendor in the version ("Apache Tomcat" +
+ * "Apache Tomcat/11.0.25"), so joining blindly reads it out twice.
+ */
+export const vendor_version = (entry) => {
+  const vendor = entry?.vendor, version = entry?.version
+  if (!vendor) return version || null
+  if (!version) return vendor
+  return version.includes(vendor) ? version : `${vendor} ${version}`
+}
+
+const TelemetryMetrics = ({ internals }) => {
+  const [t] = useTranslation()
+  return <section class="telemetry-section">
+    <h3>{t("admin.telemetry.metrics")}</h3>
+    <div class="telemetry-metrics">
+      {TELEMETRY_METRICS.map((key) =>
+        <article key={key}>
+          <h4>{t(`admin.telemetry.metric.${key}`)}</h4>
+          <p class="num">{(internals?.metrics?.[key]?.count ?? 0).toLocaleString()}</p>
+        </article>)}
+    </div>
+  </section>
+}
+
+/* ~50 commands, so the table is worth filtering and sorting. Sorted by count
+   descending by default: what an installation does most is the useful answer. */
+const TelemetryCommands = ({ internals }) => {
+  const [t] = useTranslation(),
+    filter = useSignal(''),
+    sorting = useSignal({ sortBy: 'count', sortOrder: 'desc' }),
+    all_rows = command_rows(internals?.commands),
+    needle = filter.value.trim().toLowerCase(),
+    rows = sort_rows(
+      needle ? all_rows.filter((r) => r.name.toLowerCase().includes(needle)) : all_rows,
+      sorting.value,
+      (row, key) => row[key])
+
+  return <section class="telemetry-section">
+    <h3>{t("admin.telemetry.commands")}</h3>
+    <div class="telemetry-commands-filter">
+      <label for="telemetry-command-filter">{t("admin.telemetry.filter")}</label>
+      <input id="telemetry-command-filter" type="search" value={filter.value}
+             onInput={(e) => (filter.value = e.currentTarget.value)} />
+      <small>{t("admin.telemetry.command-count", { shown: rows.length, total: all_rows.length })}</small>
+    </div>
+    {rows.length === 0
+      ? <p>{t("common.no-data")}</p>
+      : <table class="telemetry-commands">
+        <thead>
+          <tr>
+            <SortableColumn sort_key="name" current={sorting.value}
+                            on_change={(patch) => (sorting.value = patch)}>
+              {t("admin.telemetry.command")}
+            </SortableColumn>
+            <SortableColumn sort_key="count" class="num" current={sorting.value}
+                            on_change={(patch) => (sorting.value = patch)}>
+              {t("admin.telemetry.executions")}
+            </SortableColumn>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) =>
+            <tr key={row.name}>
+              <td>{row.name}</td>
+              <td class="num">{row.count.toLocaleString()}</td>
+            </tr>)}
+        </tbody>
+      </table>}
+  </section>
+}
+
 const SystemPage = () => {
   const { api: { engine: { telemetry } } } = useContext(AppState),
     state = useContext(AppState),
+    copied = useSignal(false),
     [t] = useTranslation()
 
   useEffect(() => {
     void engine_rest.engine.telemetry(state)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  /* Support and bug reports want the untouched payload, which no amount of
+     structuring replaces — hence a copy of the raw JSON, not of the view. */
+  const copy_json = () => {
+    if (!navigator.clipboard?.writeText) return
+    void navigator.clipboard.writeText(JSON.stringify(telemetry.value?.data ?? {}, null, 2))
+    copied.value = true
+    setTimeout(() => (copied.value = false), 2000)
+  }
 
   return <div class="content fade-in">
     <Breadcrumbs paths={[
@@ -518,7 +645,32 @@ const SystemPage = () => {
     <h2>{t("admin.system")}</h2>
     <RequestState
       signal={telemetry}
-      on_success={() => <pre class="fade-in">{telemetry.value !== undefined ? JSON.stringify(telemetry.value?.data, null, 2) : ''} </pre>}
+      on_success={() => {
+        const data = telemetry.value?.data ?? {},
+          internals = data?.product?.internals ?? {},
+          webapps = internals.webapps ?? []
+
+        return <div class="telemetry fade-in">
+          <div class="telemetry-actions">
+            <button type="button" onClick={copy_json}>{t("admin.telemetry.copy-json")}</button>
+            <small aria-live="polite">{copied.value ? t("admin.telemetry.copied") : ''}</small>
+          </div>
+
+          <TelemetryEnvironment data={data} />
+          <TelemetryMetrics internals={internals} />
+          {/* Empty on a runtime that serves no web apps, and then says nothing. */}
+          {webapps.length > 0 && <section class="telemetry-section">
+            <h3>{t("admin.telemetry.webapps")}</h3>
+            <p>{webapps.join(', ')}</p>
+          </section>}
+          <TelemetryCommands internals={internals} />
+
+          <details class="telemetry-raw">
+            <summary>{t("admin.telemetry.raw")}</summary>
+            <pre>{JSON.stringify(data, null, 2)}</pre>
+          </details>
+        </div>
+      }}
     />
   </div>
 }

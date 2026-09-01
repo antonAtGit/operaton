@@ -784,6 +784,34 @@
       "dashboard": "Dashboard",
       "user-operation-log": "Benutzeroperations-Protokollkategorie",
       "system": "System"
+    },
+    "telemetry": {
+      "environment": "Installation & Umgebung",
+      "product": "Produkt",
+      "version": "Version",
+      "edition": "Edition",
+      "installation": "Installations-ID",
+      "database": "Datenbank",
+      "jdk": "JDK",
+      "app-server": "Application-Server",
+      "integration": "Integration",
+      "collected-since": "Erfasst seit",
+      "metrics": "Engine-Kennzahlen",
+      "metric": {
+        "process-instances": "Prozessinstanzen",
+        "flow-node-instances": "Flow-Node-Instanzen",
+        "decision-instances": "Decision-Instanzen",
+        "executed-decision-elements": "Ausgeführte Decision-Elemente"
+      },
+      "commands": "Command-Ausführungen",
+      "command": "Command",
+      "executions": "Ausführungen",
+      "filter": "Filtern",
+      "command-count": "{{shown}} von {{total}}",
+      "webapps": "Web-Anwendungen",
+      "copy-json": "JSON kopieren",
+      "copied": "Kopiert",
+      "raw": "Roh-Telemetriedaten"
     }
   },
   "account": {

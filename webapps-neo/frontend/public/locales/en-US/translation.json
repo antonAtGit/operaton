@@ -784,6 +784,34 @@
       "dashboard": "Dashboard",
       "user-operation-log": "User Operation Log Category",
       "system": "System"
+    },
+    "telemetry": {
+      "environment": "Installation & environment",
+      "product": "Product",
+      "version": "Version",
+      "edition": "Edition",
+      "installation": "Installation ID",
+      "database": "Database",
+      "jdk": "JDK",
+      "app-server": "Application server",
+      "integration": "Integration",
+      "collected-since": "Collecting since",
+      "metrics": "Engine metrics",
+      "metric": {
+        "process-instances": "Process instances",
+        "flow-node-instances": "Flow node instances",
+        "decision-instances": "Decision instances",
+        "executed-decision-elements": "Executed decision elements"
+      },
+      "commands": "Command executions",
+      "command": "Command",
+      "executions": "Executions",
+      "filter": "Filter",
+      "command-count": "{{shown}} of {{total}}",
+      "webapps": "Web applications",
+      "copy-json": "Copy JSON",
+      "copied": "Copied",
+      "raw": "Raw telemetry data"
     }
   },
   "account": {

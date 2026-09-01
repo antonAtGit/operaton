@@ -28,7 +28,7 @@ vi.mock("preact-iso", () => ({
 
 import { AppState } from "../state.js";
 import engine_rest from "../api/engine_rest.jsx";
-import { AdminPage } from "./Admin.jsx";
+import { AdminPage, command_rows, vendor_version } from "./Admin.jsx";
 import { create_mock_state, signal_response } from "../test/helpers.js";
 
 const renderPage = (state) =>
@@ -430,17 +430,169 @@ describe("AdminPage", () => {
       expect(engine_rest.engine.telemetry.mock.lastCall[0]).toBe(state);
     });
 
-    it("renders the telemetry data from the signal", () => {
+    // A payload shaped like the engine's, trimmed to what the view reads.
+    const telemetry_data = {
+      installation: "abc-123",
+      product: {
+        name: "Operaton BPM Runtime",
+        version: "2.1.4",
+        edition: "community",
+        internals: {
+          database: { vendor: "H2", version: "2.4.240" },
+          jdk: { vendor: "Alpine", version: "17.0.20" },
+          "application-server": {
+            vendor: "Apache Tomcat",
+            version: "Apache Tomcat/11.0.25",
+          },
+          "operaton-integration": ["spring-boot-starter"],
+          "data-collection-start-date": "2026-09-01T07:53:32.065+0000",
+          metrics: {
+            "process-instances": { count: 6 },
+            "flow-node-instances": { count: 31 },
+            "decision-instances": { count: 12 },
+            "executed-decision-elements": { count: 126 },
+          },
+          commands: {
+            AcquireJobsCmd: { count: 56 },
+            ProcessDefinitionStatisticsQueryImpl: { count: 82 },
+            TaskQueryImpl: { count: 15 },
+          },
+          webapps: [],
+        },
+      },
+    };
+
+    const render_system = (data = telemetry_data) => {
       mockParams = { page_id: "system" };
-      signal_response(state.api.engine.telemetry, {
-        installation: "abc-123",
-        product: { name: "Operaton" },
-      });
-      const { container } = renderPage(state);
-      const pre = container.querySelector("pre");
-      expect(pre).toBeTruthy();
+      signal_response(state.api.engine.telemetry, data);
+      return renderPage(state);
+    };
+
+    const command_names = (container) =>
+      Array.from(
+        container.querySelectorAll(
+          ".telemetry-commands tbody tr td:first-child",
+        ),
+      ).map((td) => td.textContent);
+
+    it("keeps the untouched payload available for support", () => {
+      // Structuring the data must not cost the copyable original.
+      const { container } = render_system();
+      const pre = container.querySelector(".telemetry-raw pre");
       expect(pre.textContent).toContain("abc-123");
       expect(pre.textContent).toContain("Operaton");
     });
+
+    it("names the environment instead of leaving it in the JSON", () => {
+      const { container } = render_system();
+      const facts = container.querySelector(".telemetry-facts").textContent;
+      expect(facts).toContain("Operaton BPM Runtime");
+      expect(facts).toContain("H2 2.4.240");
+      expect(facts).toContain("Alpine 17.0.20");
+      expect(facts).toContain("spring-boot-starter");
+    });
+
+    it("shows every engine metric", () => {
+      const { container } = render_system();
+      const cards = container.querySelectorAll(".telemetry-metrics article");
+      expect(cards).toHaveLength(4);
+      expect(
+        container.querySelector(".telemetry-metrics").textContent,
+      ).toContain("126");
+    });
+
+    it("lists the commands by execution count, descending", () => {
+      // What an installation does most is the answer worth showing first.
+      const { container } = render_system();
+      expect(command_names(container)).toEqual([
+        "ProcessDefinitionStatisticsQueryImpl",
+        "AcquireJobsCmd",
+        "TaskQueryImpl",
+      ]);
+    });
+
+    it("filters the commands by name", () => {
+      const { container } = render_system();
+      fireEvent.input(container.querySelector("#telemetry-command-filter"), {
+        target: { value: "query" },
+      });
+      expect(command_names(container)).toEqual([
+        "ProcessDefinitionStatisticsQueryImpl",
+        "TaskQueryImpl",
+      ]);
+    });
+
+    it("sorts by command name when that header is clicked", () => {
+      const { container } = render_system();
+      fireEvent.click(
+        container.querySelector(".telemetry-commands thead th button"),
+      );
+      expect(command_names(container)).toEqual([
+        "AcquireJobsCmd",
+        "ProcessDefinitionStatisticsQueryImpl",
+        "TaskQueryImpl",
+      ]);
+    });
+
+    it("says nothing about web apps when the engine serves none", () => {
+      const { container } = render_system();
+      expect(container.textContent).not.toContain("admin.telemetry.webapps");
+    });
+
+    it("lists web apps when there are any", () => {
+      const data = structuredClone(telemetry_data);
+      data.product.internals.webapps = ["cockpit", "admin"];
+      const { container } = render_system(data);
+      expect(container.textContent).toContain("cockpit, admin");
+    });
+
+    it("copies the raw payload, not the rendered view", () => {
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+      const { container } = render_system();
+      fireEvent.click(container.querySelector(".telemetry-actions button"));
+      expect(writeText).toHaveBeenCalled();
+      expect(JSON.parse(writeText.mock.lastCall[0])).toEqual(telemetry_data);
+      vi.unstubAllGlobals();
+    });
+  });
+});
+
+describe("vendor_version", () => {
+  it("joins vendor and version", () => {
+    expect(vendor_version({ vendor: "H2", version: "2.4.240" })).toBe(
+      "H2 2.4.240",
+    );
+  });
+
+  it("does not repeat a vendor the version already carries", () => {
+    // The engine reports Tomcat as vendor "Apache Tomcat" and version
+    // "Apache Tomcat/11.0.25"; joining blindly reads it out twice.
+    expect(
+      vendor_version({
+        vendor: "Apache Tomcat",
+        version: "Apache Tomcat/11.0.25",
+      }),
+    ).toBe("Apache Tomcat/11.0.25");
+  });
+
+  it("copes with either half missing", () => {
+    expect(vendor_version({ vendor: "H2" })).toBe("H2");
+    expect(vendor_version({ version: "2.4" })).toBe("2.4");
+    expect(vendor_version(undefined)).toBeNull();
+  });
+});
+
+describe("command_rows", () => {
+  it("turns the command map into rows", () => {
+    expect(command_rows({ A: { count: 2 }, B: { count: 5 } })).toEqual([
+      { name: "A", count: 2 },
+      { name: "B", count: 5 },
+    ]);
+  });
+
+  it("treats a missing count as zero and no map as empty", () => {
+    expect(command_rows({ A: {} })).toEqual([{ name: "A", count: 0 }]);
+    expect(command_rows(undefined)).toEqual([]);
   });
 });

@@ -1626,6 +1626,92 @@
     z-index: 1;
   }
 
+  /* --- Telemetry (Administration → System) --- */
+
+  .telemetry-section {
+    margin-block-start: var(--spacing-3);
+  }
+
+  .telemetry-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+  }
+
+  /* Label and value side by side, so the environment block stays scannable
+     instead of turning into one long column. */
+  .telemetry-facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--spacing-1) var(--spacing-3);
+    margin: 0;
+  }
+
+  .telemetry-facts dt {
+    margin: 0;
+    color: var(--text-2);
+    font-weight: normal;
+  }
+
+  .telemetry-facts dd {
+    margin: 0;
+  }
+
+  .telemetry-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-3);
+  }
+
+  .telemetry-metrics article {
+    flex: 1 1 12rem;
+    padding: var(--spacing-2);
+    border: var(--border);
+    border-radius: var(--border-radius-2, 0.5rem);
+    background: var(--background-2);
+  }
+
+  .telemetry-metrics h4 {
+    margin: 0;
+    color: var(--text-2);
+    font-size: var(--small-font-size);
+    font-weight: normal;
+  }
+
+  /* Left under its label: a single figure in a card has no column to line up
+     with, unlike the counts in the commands table. */
+  .telemetry-metrics .num {
+    margin-block-start: var(--spacing-1);
+    font-size: 1.75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .telemetry-commands-filter {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    margin-block-end: var(--spacing-2);
+  }
+
+  /* Counts line up under each other, which is the point of a count column. */
+  .telemetry-commands .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .telemetry-commands {
+    width: 100%;
+  }
+
+  .telemetry-raw {
+    margin-block-start: var(--spacing-3);
+  }
+
+  .telemetry-raw pre {
+    overflow-x: auto;
+  }
+
   /* A sortable header is a button that has to pass for a header: it inherits
      the cell's typography instead of looking like a control. */
   thead th > button.sort-column {
