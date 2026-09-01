@@ -122,6 +122,99 @@
 }
 
 @layer custom {
+  /* Sortable table headers.
+   *
+   * These live in `custom` on purpose. The app styles every `button` in the
+   * `core` layer as a raised, rounded control with its own padding and a
+   * margin-top, and a header cell that renders as a chip reads as a form
+   * control sitting in the table rather than as its heading. `custom` is the
+   * last layer, so this undoes that styling instead of fighting it with
+   * specificity.
+   */
+  thead th:has(> button.sort-column) {
+    /* The button carries the cell's padding instead, so the click target — and
+       the hover highlight — covers the whole header cell rather than just the
+       few pixels around the label. */
+    padding: 0;
+  }
+
+  thead th > button.sort-column {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    width: 100%;
+    margin: 0;
+    padding: var(--spacing-1);
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-sizing: border-box;
+    /* Inherit the header's own typography: same size, weight, casing and
+       tracking as a plain `<th>`, so a sortable column is not visibly a
+       different kind of heading. */
+    color: inherit;
+    font: inherit;
+    line-height: inherit;
+    letter-spacing: inherit;
+    text-align: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+  }
+
+  thead th.num > button.sort-column {
+    justify-content: flex-end;
+  }
+
+  thead th > button.sort-column:hover,
+  thead th > button.sort-column:active {
+    background: var(--background-2);
+  }
+
+  /* The app draws a dashed outline on every button hover, which on a header
+     cell reads as a form control again. The background tint is affordance
+     enough for the pointer — but `:not(:focus-visible)` keeps this from
+     swallowing the keyboard ring when a focused header is hovered too. */
+  thead th > button.sort-column:hover:not(:focus-visible),
+  thead th > button.sort-column:active:not(:focus-visible) {
+    outline: none;
+  }
+
+  thead th > button.sort-column:focus-visible {
+    /* Same ring the app gives every other focusable element, inset so it is
+       not clipped by the sticky header's edge. */
+    outline: var(--border-width-2) solid var(--color-primary);
+    outline-offset: calc(-1 * var(--border-width-2));
+  }
+
+  /* Space is reserved whether or not an arrow shows, so the other labels do not
+     shift sideways as the sorted column changes. */
+  .sort-indicator {
+    display: inline-flex;
+    flex: none;
+    width: 1em;
+    height: 1em;
+    color: var(--text-2);
+  }
+
+  .sort-indicator svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* An unsorted column shows its arrow only under the pointer — enough to say
+     "this sorts" without seven arrows competing with the labels. */
+  thead th[aria-sort="none"] .sort-indicator {
+    opacity: 0;
+  }
+
+  thead th[aria-sort="none"] > button.sort-column:hover .sort-indicator,
+  thead
+    th[aria-sort="none"]
+    > button.sort-column:focus-visible
+    .sort-indicator {
+    opacity: 0.5;
+  }
+
   #release-warning {
     text-align: center;
     font-style: italic;
@@ -1624,42 +1717,6 @@
     font-size: var(--small-font-size);
     letter-spacing: 0.02em;
     z-index: 1;
-  }
-
-  /* A sortable header is a button that has to pass for a header: it inherits
-     the cell's typography instead of looking like a control. */
-  thead th > button.sort-column {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-1);
-    width: 100%;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: inherit;
-    font: inherit;
-    text-align: inherit;
-    text-transform: inherit;
-    letter-spacing: inherit;
-    cursor: pointer;
-  }
-
-  thead th.num > button.sort-column {
-    justify-content: flex-end;
-  }
-
-  /* Reserved whether or not the arrow is showing, so the labels of the other
-     columns do not shift sideways when the sort column changes. */
-  .sort-indicator {
-    display: inline-flex;
-    flex: none;
-    width: 1em;
-    height: 1em;
-  }
-
-  .sort-indicator svg {
-    width: 100%;
-    height: 100%;
   }
 
   table thead th:first-child {
