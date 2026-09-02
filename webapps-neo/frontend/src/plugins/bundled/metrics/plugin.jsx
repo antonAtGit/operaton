@@ -66,20 +66,29 @@ const MetricValue = ({ signal: signl, format = (v) => v }) => (
   />
 );
 
-// Rendered next to the engine version once both versions are known. Silent
+// Rendered next to the engine version once both versions are known. Stays empty
 // while the check is disabled, still running or failed.
+//
+// The live region is always in the DOM, even while empty: a `role="status"` that
+// only appears together with its text is announced unreliably, because screen
+// readers watch existing regions for changes rather than new ones for content.
 const UpdateBadge = ({ signals }) => {
   const [t] = useTranslation();
   const current = signals.version.value?.data?.version;
   const latest = signals.latest_release.value;
+  const known = current && latest;
 
-  if (!current || !latest) return null;
-  return is_outdated(current, latest) ? (
-    <p class="update-badge is-outdated">
-      {t("plugins.metrics.update-available", { version: latest })}
-    </p>
-  ) : (
-    <p class="update-badge is-current">{t("plugins.metrics.up-to-date")}</p>
+  return (
+    <div class="update-badge" role="status">
+      {known &&
+        (is_outdated(current, latest) ? (
+          <p class="is-outdated">
+            {t("plugins.metrics.update-available", { version: latest })}
+          </p>
+        ) : (
+          <p class="is-current">{t("plugins.metrics.up-to-date")}</p>
+        ))}
+    </div>
   );
 };
 
