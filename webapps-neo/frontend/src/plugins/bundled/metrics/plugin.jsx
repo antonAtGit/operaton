@@ -146,7 +146,7 @@ const translations = {
         title: "Engine-Kennzahlen",
         version: "Engine-Version",
         "update-available": "Update verfügbar: {{version}}",
-        "up-to-date": "Aktuell",
+        "up-to-date": "Version ist aktuell",
         "process-starts": "Prozessstarts (12 Mon.)",
         "flow-nodes": "Ausgeführte Flow-Knoten (12 Mon.)",
       },
