@@ -15,6 +15,7 @@ import { GET } from "../../../api/helper.jsx";
 import { RequestState } from "../../../api/engine_rest.jsx";
 import { PLUGIN_POINTS } from "../../points.js";
 import { use_plugin_api } from "../../plugin_api.jsx";
+import { latest_release, is_outdated } from "./update_check.js";
 import "./metrics.css";
 
 const PLUGIN_ID = "metrics";
@@ -54,6 +55,8 @@ const make_signals = () => ({
   version: signal(null),
   process_starts: signal(null),
   flow_nodes: signal(null),
+  // Not an engine call, so no RequestState wrapper: null means "nothing to show".
+  latest_release: signal(null),
 });
 
 const MetricValue = ({ signal: signl, format = (v) => v }) => (
@@ -63,6 +66,23 @@ const MetricValue = ({ signal: signl, format = (v) => v }) => (
   />
 );
 
+// Rendered next to the engine version once both versions are known. Silent
+// while the check is disabled, still running or failed.
+const UpdateBadge = ({ signals }) => {
+  const [t] = useTranslation();
+  const current = signals.version.value?.data?.version;
+  const latest = signals.latest_release.value;
+
+  if (!current || !latest) return null;
+  return is_outdated(current, latest) ? (
+    <p class="update-badge is-outdated">
+      {t("plugins.metrics.update-available", { version: latest })}
+    </p>
+  ) : (
+    <p class="update-badge is-current">{t("plugins.metrics.up-to-date")}</p>
+  );
+};
+
 const MetricsPage = () => {
   const { state, api: metrics, signals } = use_plugin_api(PLUGIN_ID);
   const [t] = useTranslation();
@@ -71,6 +91,12 @@ const MetricsPage = () => {
     metrics.version(state);
     metrics.process_starts(state);
     metrics.flow_nodes(state);
+
+    const controller = new AbortController();
+    latest_release(controller.signal).then((tag) => {
+      signals.latest_release.value = tag;
+    });
+    return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -81,6 +107,7 @@ const MetricsPage = () => {
         <article>
           <h2>{t("plugins.metrics.version")}</h2>
           <MetricValue signal={signals.version} format={(d) => d.version} />
+          <UpdateBadge signals={signals} />
         </article>
         <article>
           <h2>{t("plugins.metrics.process-starts")}</h2>
@@ -105,6 +132,8 @@ const translations = {
         nav: "Metrics",
         title: "Engine Metrics",
         version: "Engine version",
+        "update-available": "Update available: {{version}}",
+        "up-to-date": "Up to date",
         "process-starts": "Process starts (12 mo)",
         "flow-nodes": "Flow nodes executed (12 mo)",
       },
@@ -116,6 +145,8 @@ const translations = {
         nav: "Kennzahlen",
         title: "Engine-Kennzahlen",
         version: "Engine-Version",
+        "update-available": "Update verfügbar: {{version}}",
+        "up-to-date": "Aktuell",
         "process-starts": "Prozessstarts (12 Mon.)",
         "flow-nodes": "Ausgeführte Flow-Knoten (12 Mon.)",
       },

@@ -94,6 +94,8 @@ const from_env = () => {
     remote_plugins_allow_origins: split_origins(clean(import.meta.env.VITE_REMOTE_PLUGINS_ALLOW_ORIGINS)),
     hide_release_warning: clean(import.meta.env.VITE_HIDE_RELEASE_WARNING) === "true",
     branding: parse_branding(import.meta.env.VITE_BRANDING),
+    // Opt-in: the metrics page asks github.com for the latest release.
+    update_check: clean(import.meta.env.VITE_UPDATE_CHECK) === "true",
     user: undefined,
   }
 }
@@ -141,6 +143,8 @@ const from_document = (json) => {
     hide_release_warning:
       json.hideReleaseWarning === true || clean(json.hideReleaseWarning) === "true",
     branding: as_branding(json.branding),
+    update_check:
+      json.updateCheck === true || clean(json.updateCheck) === "true",
     user: json.user?.id ? { id: json.user.id } : undefined,
   }
 }
