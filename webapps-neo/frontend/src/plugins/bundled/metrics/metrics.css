@@ -30,18 +30,20 @@
 }
 
 @layer pages {
+  /* The wording carries the state, not the colour: --color-warning (#d47100,
+     3.05:1) and --color-success (#00b82b, 2.38:1) both miss WCAG AA on the
+     --background-2 card surface, and colour alone would fail 1.4.1 anyway. */
   #content.metrics-page .update-badge {
     margin-block-start: var(--spacing-2, 0.5rem);
-    font-size: 0.85rem;
+    font-size: var(--small-font-size, 0.85rem);
+  }
+
+  #content.metrics-page .update-badge .is-outdated {
+    color: var(--text);
     font-weight: 600;
   }
 
-  #content.metrics-page .update-badge.is-outdated {
-    color: var(--color-warning, #9a6700);
-  }
-
-  #content.metrics-page .update-badge.is-current {
-    color: var(--color-success, #1a7f37);
-    font-weight: 400;
+  #content.metrics-page .update-badge .is-current {
+    color: var(--text-2);
   }
 }
