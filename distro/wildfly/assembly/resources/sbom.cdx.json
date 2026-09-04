@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:e5009407-ebbf-45b3-94e4-0caf8ad8d5e0",
+  "serialNumber": "urn:uuid:c1e5e23d-a14d-4e72-ac64-9c9c6a696893",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-09-02T09:51:15Z",
+    "timestamp": "2026-09-04T06:53:24Z",
     "tools": {
       "components": [
         {
@@ -56,7 +56,7 @@
           },
           "group": "aquasecurity",
           "name": "trivy",
-          "version": "0.74.0-SNAPSHOT-dcfb99218"
+          "version": "0.74.0-SNAPSHOT-448887d5f"
         }
       ]
     },
@@ -31094,7 +31094,7 @@
     },
     {
       "type": "application",
-      "bom-ref": "96674a19-6c3b-4080-8d03-9e040a99dce7",
+      "bom-ref": "e838b2c0-a50c-48dc-9793-fe43887c5304",
       "name": "package-lock.json",
       "properties": [
         {
@@ -36350,7 +36350,7 @@
     },
     {
       "type": "application",
-      "bom-ref": "1fb8d061-6222-4673-9e09-93e74f000e95",
+      "bom-ref": "39382c44-b83b-4c02-a636-70a4162be83b",
       "name": "/repo/webapps/frontend",
       "properties": [
         {
@@ -40076,13 +40076,13 @@
       "dependsOn": []
     },
     {
-      "ref": "1fb8d061-6222-4673-9e09-93e74f000e95",
+      "ref": "39382c44-b83b-4c02-a636-70a4162be83b",
       "dependsOn": [
-        "96674a19-6c3b-4080-8d03-9e040a99dce7"
+        "e838b2c0-a50c-48dc-9793-fe43887c5304"
       ]
     },
     {
-      "ref": "96674a19-6c3b-4080-8d03-9e040a99dce7",
+      "ref": "e838b2c0-a50c-48dc-9793-fe43887c5304",
       "dependsOn": [
         "pkg:npm/%40bpmn-io/dmn-migrate@0.7.1",
         "pkg:npm/%40bpmn-io/form-js@1.25.0",
@@ -42688,6 +42688,164 @@
           "versions": [
             {
               "version": "1.8.3",
+              "status": "affected"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-82417",
+      "source": {
+        "name": "ghsa",
+        "url": "https://github.com/advisories?query=type%3Areviewed\u002Becosystem%3Anpm"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "ghsa"
+          },
+          "score": 5.3,
+          "severity": "medium",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L"
+        },
+        {
+          "source": {
+            "name": "ghsa"
+          },
+          "score": 6.3,
+          "severity": "medium",
+          "method": "CVSSv4",
+          "vector": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:N/VI:N/VA:L/SC:N/SI:N/SA:N"
+        },
+        {
+          "source": {
+            "name": "redhat"
+          },
+          "score": 7.5,
+          "severity": "high",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        }
+      ],
+      "cwes": [
+        248,
+        703
+      ],
+      "description": "### Summary\n\n\n\n\u0060qs.stringify\u0060 throws a \u0060TypeError\u0060 when it serializes an object whose own \u0060constructor\u0060 property has a truthy, non-callable \u0060isBuffer\u0060 member. \u0060utils.isBuffer\u0060 duck-types buffers by calling \u0060obj.constructor.isBuffer(obj)\u0060 after checking only that the property is truthy, so a value such as \u0060{ constructor: { isBuffer: \u0022x\u0022 } }\u0060 makes the call throw \u0060TypeError: obj.constructor.isBuffer is not a function\u0060.\n\n\n\n### Details\n\n\n\n\u0060lib/stringify.js:127\u0060 calls \u0060utils.isBuffer\u0060 on every non-primitive value it serializes. \u0060utils.isBuffer\u0060 (\u0060lib/utils.js:332\u0060) reads \u0060obj.constructor.isBuffer\u0060 and invokes it without verifying that it is a function. \u0060constructor\u0060 and \u0060isBuffer\u0060 are ordinary property names, so any object carrying them as own properties reaches the unchecked call.\n\n\n\nSuch an object can be built from untrusted input. \u0060qs.parse(\u0022x[constructor][isBuffer]=y\u0022, { plainObjects: true })\u0060 or \u0060{ allowPrototypes: true }\u0060 keeps the \u0060constructor\u0060 key as an own property (the default parse options drop it), and \u0060JSON.parse(\u0022{\\\u0022a\\\u0022:{\\\u0022constructor\\\u0022:{\\\u0022isBuffer\\\u0022:\\\u0022x\\\u0022}}}\u0022)\u0060 produces the same shape with no qs option involved. Express 4 with its default \u0060query parser\u0060 setting and body-parser with \u0060extended: true\u0060 both call \u0060qs.parse\u0060 with \u0060allowPrototypes: true\u0060, so on those stacks \u0060req.query\u0060 and \u0060req.body\u0060 can carry the shape directly.\n\n\n\n#### PoC\n\n\n\n\u0060\u0060\u0060js\n\n\n\nvar qs = require(\u0022qs\u0022);\n\n\n\nqs.stringify(qs.parse(\u0022x[constructor][isBuffer]=y\u0022, { plainObjects: true }));\n\n\n\nqs.stringify(JSON.parse(\u0022{\\\u0022a\\\u0022:{\\\u0022constructor\\\u0022:{\\\u0022isBuffer\\\u0022:\\\u0022x\\\u0022}}}\u0022));\n\n\n\n// TypeError: obj.constructor.isBuffer is not a function\n\n\n\n//     at Object.isBuffer (lib/utils.js:332:78)\n\n\n\n//     at stringify (lib/stringify.js:127:45)\n\n\n\n\u0060\u0060\u0060\n\n\n\n#### Fix\n\n\n\n\u0060lib/utils.js\u0060, applied in e83d321 on \u0060main\u0060 and released as v6.16.0:\n\n\n\n\u0060\u0060\u0060diff\n\n\n\n- return !!(obj.constructor \u0026\u0026 obj.constructor.isBuffer \u0026\u0026 obj.constructor.isBuffer(obj));\n\n\n\n\u002B return !!(obj.constructor \u0026\u0026 typeof obj.constructor.isBuffer === \u0022function\u0022 \u0026\u0026 obj.constructor.isBuffer(obj));\n\n\n\n\u0060\u0060\u0060\n\n\n\nReal \u0060Buffer\u0060, \u0060safer-buffer\u0060, and browserify \u0060buffer\u0060 polyfill instances serialize exactly as before; only the throw is removed.\n\n\n\n### Affected versions\n\n\n\n\u0060\u003E=2.2.5 \u003C6.16.0\u0060, fixed in v6.16.0.\n\n\n\nThe unguarded duck-type was introduced in 3768a75 and first shipped in v2.2.5 (September 2014). v2.2.4 and earlier used \u0060Buffer.isBuffer\u0060 and are not affected. Every release from v2.2.5 through v6.15.3 contains the unguarded call.\n\n\n\n### Impact\n\n\n\nAn unauthenticated request can make any code path that re-serializes attacker-influenced data with \u0060qs.stringify\u0060 (for example, rebuilding a query string from \u0060req.query\u0060 for a redirect or an upstream request, or serializing a parsed JSON body) throw synchronously. In a typical Node.js HTTP framework the throw is caught by the framework error boundary and the affected request returns a 500; the process survives and other requests are unaffected. Where the call runs outside an error boundary, such as an \u0060async\u0060 Express 4 handler (where the throw becomes an unhandled promise rejection) or a background job, the process exits, so the impact in that case depends on the application error handling rather than on qs.",
+      "recommendation": "Upgrade qs to version 6.16.0",
+      "advisories": [
+        {
+          "url": "https://avd.aquasec.com/nvd/cve-2026-82417"
+        },
+        {
+          "url": "https://access.redhat.com/security/cve/CVE-2026-82417"
+        },
+        {
+          "url": "https://github.com/ljharb/qs"
+        },
+        {
+          "url": "https://github.com/ljharb/qs/commit/e83d321ffafb38cf210683ac31714fce6ce1c6c6"
+        },
+        {
+          "url": "https://github.com/ljharb/qs/security/advisories/GHSA-4mjr-xmp4-gh2g"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-82417"
+        },
+        {
+          "url": "https://www.cve.org/CVERecord?id=CVE-2026-82417"
+        }
+      ],
+      "published": "2026-08-30T00:16:34Z",
+      "updated": "2026-09-03T18:00:36Z",
+      "affects": [
+        {
+          "ref": "pkg:npm/qs@6.15.2",
+          "versions": [
+            {
+              "version": "6.15.2",
+              "status": "affected"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-82562",
+      "source": {
+        "name": "ghsa",
+        "url": "https://github.com/advisories?query=type%3Areviewed\u002Becosystem%3Anpm"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "ghsa"
+          },
+          "score": 3.7,
+          "severity": "medium",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L"
+        },
+        {
+          "source": {
+            "name": "ghsa"
+          },
+          "score": 6.3,
+          "severity": "medium",
+          "method": "CVSSv4",
+          "vector": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:N/VI:N/VA:L/SC:N/SI:N/SA:N"
+        },
+        {
+          "source": {
+            "name": "redhat"
+          },
+          "score": 3.7,
+          "severity": "low",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L"
+        }
+      ],
+      "cwes": [
+        770
+      ],
+      "description": "### Summary\n\n\n\nWhen \u0060qs.parse\u0060 is called with \u0060comma: true\u0060 and \u0060throwOnLimitExceeded: true\u0060, a comma-separated value under a bracket-push key (\u0060a[]=1,2,3,4\u0060) is split into an array without being compared against \u0060arrayLimit\u0060, while the same value under a flat key (\u0060a=1,2,3,4\u0060), an indexed key (\u0060a[0]=\u0060), a nested key (\u0060a[b]=\u0060), or a dotted key (\u0060a.b=\u0060 with \u0060allowDots\u0060) throws the documented \u0060RangeError\u0060. A single parameter such as \u0060a[]=1,2,2,...\u0060 therefore produces an inner array of arbitrary length even though the caller opted into the hard limit. This is the \u0060[]=\u0060 key form that the fix for CVE-2026-2391 (qs 6.14.2) did not cover.\n\n\n\n### Details\n\n\n\nIn \u0060lib/parse.js\u0060, a comma-separated value under a \u0060[]=\u0060 key is split and then wrapped as a single nested element (\u0060val = [val]\u0060, so that each \u0060a[]=x,y\u0060 group counts as one element of the outer array). The \u0060arrayLimit\u0060 check that 6.14.2 added for comma values runs after that wrap, so for \u0060[]=\u0060 parts it only ever saw the wrapper of length 1. 6.15.3 added a pre-split comma count so that an oversized value throws before it is allocated, but gated it on an \u0060isFlatArrayValue\u0060 flag that \u0060parseValues\u0060 set to \u0060false\u0060 for any part containing \u0060[]=\u0060, and did not pass it for object-valued input, so the gap remained.\n\n\n\n#### PoC\n\n\n\n\u0060\u0060\u0060js\n\n\n\nvar qs = require(\u0027qs\u0027);\n\n\n\nvar options = { comma: true, arrayLimit: 3, throwOnLimitExceeded: true };\n\n\n\nqs.parse(\u0027a=1,2,3,4\u0027, options);   // RangeError: Array limit exceeded. Only 3 elements allowed in an array.\n\n\n\nqs.parse(\u0027a[]=1,2,3,4\u0027, options); // { a: [ [ \u00271\u0027, \u00272\u0027, \u00273\u0027, \u00274\u0027 ] ] }  (no throw)\n\n\n\nqs.parse(\u0027a[]=\u0027 \u002B \u00271,\u0027.repeat(1000000) \u002B \u00271\u0027, { comma: true, arrayLimit: 20, throwOnLimitExceeded: true });\n\n\n\n// no throw; a 1,000,001-element inner array is allocated\n\n\n\n\u0060\u0060\u0060\n\n\n\n#### Fix\n\n\n\n\u0060lib/parse.js\u0060, applied in 8859c37 on \u0060main\u0060 and released as v6.16.0: the \u0060isFlatArrayValue\u0060 gate is removed, so every comma-split value is counted against \u0060arrayLimit\u0060 before splitting regardless of key form. An in-limit group under \u0060a[]=\u0060 still counts as one element of the outer array, and the default (\u0060throwOnLimitExceeded: false\u0060) path is unchanged.\n\n\n\n### Affected versions\n\n\n\n\u0060\u003E=6.14.2 \u003C6.16.0\u0060, fixed in v6.16.0.\n\n\n\nv6.14.2 introduced \u0060arrayLimit\u0060 enforcement for comma values (the fix for CVE-2026-2391) but only for values not under a \u0060[]=\u0060 key, and every release from v6.14.2 through v6.15.3 has the same gap. v6.14.0 and v6.14.1, where \u0060throwOnLimitExceeded\u0060 exists but does not apply to any comma form, are covered by CVE-2026-2391 rather than this record. Earlier lines (6.7.x through 6.13.x) have \u0060comma\u0060 but no \u0060throwOnLimitExceeded\u0060, so there is no hard cap on any comma path to bypass; releases before 6.7.0 have no \u0060comma\u0060 option.\n\n\n\n### Impact\n\n\n\nAn unauthenticated attacker who can reach an application that parses untrusted query strings or urlencoded bodies with both \u0060comma: true\u0060 and \u0060throwOnLimitExceeded: true\u0060 (both non-default) can bypass the configured limit with a single \u0060a[]=\u0060 parameter and force the parser to allocate an array proportional to the request size. The cost is strictly linear in the attacker-supplied bytes (about 0.1 microseconds and 6 to 7 retained bytes per input byte; the same out-of-memory threshold as the documented default \u0060throwOnLimitExceeded: false\u0060 path), so a transport-layer request or body size limit bounds it completely (and node\u0027s default maximum HTTP header size of 16 KB already bounds the request line, so multi-megabyte payloads need a body parser). The impact is that an opt-in hard limit fails open on one key spelling, not unbounded allocation from a small input.",
+      "recommendation": "Upgrade qs to version 6.16.0",
+      "advisories": [
+        {
+          "url": "https://avd.aquasec.com/nvd/cve-2026-82562"
+        },
+        {
+          "url": "https://access.redhat.com/security/cve/CVE-2026-82562"
+        },
+        {
+          "url": "https://github.com/ljharb/qs"
+        },
+        {
+          "url": "https://github.com/ljharb/qs/commit/8859c37470e11b42b547b275e4e9bd0bc8cc5464"
+        },
+        {
+          "url": "https://github.com/ljharb/qs/security/advisories/GHSA-w7fw-mjwx-w883"
+        },
+        {
+          "url": "https://github.com/ljharb/qs/security/advisories/GHSA-x5fp-wj9c-mxmx"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-82562"
+        },
+        {
+          "url": "https://www.cve.org/CVERecord?id=CVE-2026-82562"
+        }
+      ],
+      "published": "2026-08-30T01:20:32Z",
+      "updated": "2026-09-03T18:00:36Z",
+      "affects": [
+        {
+          "ref": "pkg:npm/qs@6.15.2",
+          "versions": [
+            {
+              "version": "6.15.2",
               "status": "affected"
             }
           ]
