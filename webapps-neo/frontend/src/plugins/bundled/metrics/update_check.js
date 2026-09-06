@@ -9,14 +9,20 @@
  * outbound request to github.com, and not every installation wants its web app
  * talking to the internet.
  *
+ * The flag is read from config.json directly rather than through `get_config()`.
+ * The core schema deliberately maps only the keys it knows, so routing a
+ * plugin-specific setting through it would mean changing core code for every
+ * plugin that wants one. Reading the same document keeps this plugin
+ * self-contained — the browser fetched it at boot, so this is a cache hit.
+ *
  * Every failure is silent — offline, an air-gapped network, GitHub's rate limit
  * (60 unauthenticated calls per hour and IP) or an unparsable tag all simply
  * mean no badge is rendered. The metrics page must never depend on this.
  */
-import { get_config } from "../../../config.js";
 
 const RELEASE_URL =
   "https://api.github.com/repos/operaton/operaton/releases/latest";
+const CONFIG_URL = () => new URL("config.json", document.baseURI).href;
 const CACHE_KEY = "operaton.latest-release";
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -57,12 +63,43 @@ const to_cache = (tag) => {
   }
 };
 
+// Reads the flag out of the raw config document. Returns undefined when the
+// document says nothing about it — a DOCKER_RUN_PLACEHOLDER_* name that was
+// never substituted counts as unset, same rule as config.js applies.
+export const flag_from_document = (json) => {
+  const value = json?.updateCheck;
+  if (value === true || value === false) return value;
+  if (typeof value === "string" && value && !value.includes("PLACEHOLDER"))
+    return value === "true";
+  return undefined;
+};
+
+// Resolved once per page load. config.json wins; the build-time variable is the
+// fallback so `npm run dev` works without a server.
+let enabled = null;
+export const _reset_enabled = () => (enabled = null);
+
+const is_enabled = () =>
+  (enabled ??= (async () => {
+    let from_doc;
+    try {
+      const response = await fetch(CONFIG_URL(), {
+        headers: { Accept: "application/json" },
+        credentials: "include",
+      });
+      if (response.ok) from_doc = flag_from_document(await response.json());
+    } catch {
+      /* no config.json — fall back to the build-time value */
+    }
+    return from_doc ?? import.meta.env.VITE_UPDATE_CHECK === "true";
+  })());
+
 /**
  * Latest release tag, or null when disabled/unavailable. Cached for a day so a
  * browser costs GitHub one call per day rather than one per page view.
  */
 export const latest_release = async (signal) => {
-  if (!get_config().update_check) return null;
+  if (!(await is_enabled())) return null;
 
   const hit = from_cache();
   if (hit) return hit;

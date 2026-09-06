@@ -1,19 +1,34 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { parse_version, is_outdated, latest_release } from "./update_check.js";
-import { get_config } from "../../../config.js";
+import {
+  parse_version,
+  is_outdated,
+  latest_release,
+  flag_from_document,
+  _reset_enabled,
+} from "./update_check.js";
 
-vi.mock("../../../config.js", () => ({ get_config: vi.fn() }));
-
-const enabled = (on) => get_config.mockReturnValue({ update_check: on });
-const respond = (body, ok = true) =>
+// One stub serves both requests: config.json carries the flag, the GitHub URL
+// the release. `release` may be a function to change behaviour per call.
+const serve = ({ flag = true, release = { tag_name: "v2.1.5" }, ok = true }) =>
   vi.stubGlobal(
     "fetch",
-    vi.fn().mockResolvedValue({ ok, json: async () => body }),
+    vi.fn().mockImplementation((url) =>
+      String(url).includes("api.github.com")
+        ? Promise.resolve({
+            ok,
+            json: async () =>
+              typeof release === "function" ? release() : release,
+          })
+        : Promise.resolve({ ok: true, json: async () => ({ updateCheck: flag }) }),
+    ),
   );
+
+const enabled = (on) => serve({ flag: on });
 
 beforeEach(() => {
   localStorage.clear();
-  enabled(true);
+  _reset_enabled();
+  serve({});
 });
 
 afterEach(() => {
@@ -54,29 +69,51 @@ describe("is_outdated", () => {
   });
 });
 
+describe("flag_from_document", () => {
+  it("reads the flag as a boolean or a string", () => {
+    expect(flag_from_document({ updateCheck: true })).toBe(true);
+    expect(flag_from_document({ updateCheck: false })).toBe(false);
+    expect(flag_from_document({ updateCheck: "true" })).toBe(true);
+    expect(flag_from_document({ updateCheck: "false" })).toBe(false);
+  });
+
+  it("treats an unsubstituted placeholder and a missing key as unset", () => {
+    expect(
+      flag_from_document({ updateCheck: "DOCKER_RUN_PLACEHOLDER_UPDATE_CHECK" }),
+    ).toBeUndefined();
+    expect(flag_from_document({})).toBeUndefined();
+    expect(flag_from_document(null)).toBeUndefined();
+  });
+});
+
 describe("latest_release", () => {
-  it("does not call out at all while the check is disabled", async () => {
+  it("does not reach GitHub at all while the check is disabled", async () => {
     enabled(false);
-    respond({ tag_name: "v2.1.5" });
     expect(await latest_release()).toBeNull();
-    expect(fetch).not.toHaveBeenCalled();
+    const hosts = fetch.mock.calls.map(([u]) => String(u));
+    expect(hosts.some((u) => u.includes("api.github.com"))).toBe(false);
   });
 
   it("returns the tag and caches it for the next call", async () => {
-    respond({ tag_name: "v2.1.5" });
     expect(await latest_release()).toBe("v2.1.5");
     expect(await latest_release()).toBe("v2.1.5");
-    expect(fetch).toHaveBeenCalledTimes(1);
+    const github = fetch.mock.calls.filter(([u]) =>
+      String(u).includes("api.github.com"),
+    );
+    expect(github).toHaveLength(1);
   });
 
   it("returns null on a rate limit, an error or an unusable tag", async () => {
-    respond({ message: "rate limit exceeded" }, false);
+    serve({ ok: false, release: { message: "rate limit exceeded" } });
     expect(await latest_release()).toBeNull();
 
+    _reset_enabled();
+    localStorage.clear();
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
     expect(await latest_release()).toBeNull();
 
-    respond({ tag_name: "nightly" });
+    _reset_enabled();
+    serve({ release: { tag_name: "nightly" } });
     expect(await latest_release()).toBeNull();
   });
 });
