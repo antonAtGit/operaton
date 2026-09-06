@@ -30,20 +30,29 @@
 }
 
 @layer pages {
-  /* The wording carries the state, not the colour: --color-warning (#d47100,
-     3.05:1) and --color-success (#00b82b, 2.38:1) both miss WCAG AA on the
-     --background-2 card surface, and colour alone would fail 1.4.1 anyway. */
+  /* Uses the shared --color-success / --color-warning tokens, in line with the
+     rest of the app (see .instance-state). Both fall short of WCAG AA as text;
+     that is tracked separately and applies to the whole application, not just
+     this badge. The wording distinguishes the two states on its own, so colour
+     is never the only carrier of meaning (1.4.1). */
   #content.metrics-page .update-badge {
-    margin-block-start: var(--spacing-2, 0.5rem);
+    margin-block-start: var(--spacing-1, 0.25rem);
     font-size: var(--small-font-size, 0.85rem);
   }
 
+  /* The paragraph would otherwise add the global `p { margin: 1em 0 0 }` on
+     top of the container's own margin. */
+  #content.metrics-page .update-badge p {
+    margin: 0;
+  }
+
   #content.metrics-page .update-badge .is-outdated {
-    color: var(--text);
+    color: var(--color-warning);
     font-weight: 600;
   }
 
   #content.metrics-page .update-badge .is-current {
-    color: var(--text-2);
+    color: var(--color-success);
   }
 }
+
